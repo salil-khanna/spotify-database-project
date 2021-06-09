@@ -49,7 +49,7 @@ def index():
     print(r)
 
 
-    return f"You now have an access token : {token}"
+    return f"You now have an access token : {token}\n Please go back to the command line interface."
 
 
 @app.route("/callback")
