@@ -3,16 +3,16 @@ from spotipy.oauth2 import SpotifyOAuth
 import requests
 import spotipy
 
-
 app = Flask(__name__)
 auth = SpotifyOAuth('5a1e2b28b8a043b99d5a19ffb4d8a216',
                     'f31645c086aa4809a5fbaed43ef7ac30', "https://localhost:8000/callback&", cache_path=".spotifycache", scope="user-library-read")
 
 
+
+
 # Routes
 @app.route("/")
 def index():
-    
     token_info = auth.get_cached_token()
     if not token_info:
         # If there isn't a cached token then you will be redirected to a page where you will be asked to login to spotify
@@ -21,8 +21,6 @@ def index():
         return redirect(auth_url)
 
     token = token_info['access_token']
-    
-
     # At this point you can now create a Spotifiy instance with
     # spotipy.client.Spotify(auth=token)
 
