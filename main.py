@@ -58,7 +58,10 @@ def main():
         elif command == "-dp" or command == "--deletePlaylist":
             delete_playlist(userInfo)
         elif command == "-ur" or command == "--un-register":
-            unregister()
+            answer = unregister(userInfo)
+            if answer:
+                print("Sad to see you go :(")
+                break
         else:
             print("Invalid command")
     print("Logging out now.....")
@@ -258,7 +261,7 @@ def printNames(listType, percent, count):
 def delete_playlist(userInfo):
     playlist_name = input("What playlist do you want to delete?: ")
 
-    # db.delete_playlist(playlist_name)
+    # db.delete_playlist(userInfo, playlist_name)
 
     allPlaylists = sp.current_user_playlists(limit=50, offset=0)
     for playList in allPlaylists['items']:
@@ -269,9 +272,16 @@ def delete_playlist(userInfo):
     print(f"Playlist {playlist_name} can not be found...")
 
 
-def unregister():
+def unregister(userID):
+    
+    confirm = input("Are you sure you want to un-register (yes/no)?")
+    if "y" not in confirm.lower():
+        return False
+
     # db.remove_user_info(userID)
-    return
+    if (os.path.exists(f".spotifycache")):
+        os.remove(f".spotifycache")
+    return True
 
 
 if __name__ == '__main__':
