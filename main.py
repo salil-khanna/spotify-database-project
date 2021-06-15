@@ -156,7 +156,7 @@ def get_your_communities(userInfo):
 
 def get_community_playlist(userInfo):
     # playlist_name = input("What community playlist do you want to search for?: ")
-    # playlist = db.get_playlist(userInfo, playlist_name), also retrieve the link for the playlist if any
+    # playlist = db.get_playlist(userInfo, playlist_name), also retrieve the link for the playlist if any if user is in private, or any if public
     # print(playlist)
     return
 
@@ -180,6 +180,7 @@ def generate_recs(topArtistsList, topTracksList):
 
 def createAndPopulatePlayList(userInfo, name, songsForRec, publicVal):
     for user in userInfo:
+        # should it be collaborative? personally i think yes
         val = sp.user_playlist_create(user, name, public=publicVal, collaborative=False, description='')
         sp.user_playlist_add_tracks(user, val['id'], songsForRec, position=None)
     return
@@ -224,8 +225,8 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
 
     #add values of those selected
     for person in communityList: 
-        top2Artists = db.get_top_artists(person)[:2]
-        top2Tracks = db.get_top_tracks(person)[:2]
+        #top2Artists = db.get_top_artists(person)[:2]
+        #top2Tracks = db.get_top_tracks(person)[:2]
         communityArtists += top2Artists
         communityTracks += top2Tracks
 
