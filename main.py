@@ -6,11 +6,11 @@ import time
 auth = SpotifyOAuth('5a1e2b28b8a043b99d5a19ffb4d8a216',
                     'f31645c086aa4809a5fbaed43ef7ac30', "http://localhost:8000/callback", cache_path=".spotifycache", scope="user-library-read user-top-read playlist-modify-public")
 
-token = auth.get_cached_token()['access_token']
+token = auth.get_cached_token()
 if token is None:
     sp = spotipy.Spotify(auth_manager=auth)
 else:
-    sp = spotipy.Spotify(token, auth_manager=auth)
+    sp = spotipy.Spotify(token['access_token'], auth_manager=auth)
 
 
 def main():
