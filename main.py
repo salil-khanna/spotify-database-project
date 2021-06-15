@@ -120,7 +120,7 @@ def analyzeVals(topTracksList):
 
 
 def get_friends(userInfo):
-    # friends = db.get_friends() 
+    # friends = db.get_friends(userInfo) 
     for friend in friends:
         print(friend)
     return friends
