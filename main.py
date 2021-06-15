@@ -1,6 +1,7 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import os
+import time
 
 auth = SpotifyOAuth('5a1e2b28b8a043b99d5a19ffb4d8a216',
                     'f31645c086aa4809a5fbaed43ef7ac30', "http://localhost:8000/callback", cache_path=".spotifycache", scope="user-library-read user-top-read playlist-modify-public")
@@ -12,7 +13,8 @@ sp = spotipy.Spotify(auth_manager=auth)
 def main():
     print("Welcome to SpotiStat, an application used to connect your music taste with others around the globe!")
 
-    print("Requesting login info now if not stored...")
+    print("Requesting login info now if not stored, come back to program when done...")
+    time.sleep(2)
     userInfo = sp.current_user()['id']
     topTracksList = topTracks()
     topArtistsList = topArtists()
@@ -52,7 +54,7 @@ def main():
             findFriends(topValues, userInfo)
         elif command == "-cop" or command == "--createOwnPlaylist":
             name = create_own_playlist([userInfo], topArtistsList, topTracksList)
-            print(f"Your own playlist {name} has been created! Check your Spotify account to confirm.")
+            print(f"Your own playlist '{name}' has been created! Check your Spotify account to confirm.")
         elif command == "-cgp" or command == "--createGroupPlaylist":
             create_group_playlist(topValues, userInfo, topArtistsList, topTracksList)
         elif command == "-gcp" or command == "--getCommunityPlaylist":
@@ -253,7 +255,7 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
 
     # db.insert_playlist(recommendations, is_public), add value to database
     #also store the link of playlist in database
-    print(f"Playlist has been created for all users in the community {name}!")
+    print(f"Playlist has been created for all users in the community '{name}'!")
 
 def printNames(listType, percent, count):
     print(f"Users that have a {percent}% music similarity with you:")
@@ -271,14 +273,14 @@ def delete_playlist(userInfo):
     for playList in allPlaylists['items']:
         if playlist_name == playList['name']:
             sp.user_playlist_unfollow(userInfo, playList['id'])
-            print(f"Playlist {playlist_name} has been deleted!")
+            print(f"Playlist '{playlist_name}' has been deleted!")
             return
-    print(f"Playlist {playlist_name} can not be found...")
+    print(f"Playlist '{playlist_name}' can not be found...")
 
 
 def unregister(userID):
     
-    confirm = input("Are you sure you want to un-register (yes/no)?")
+    confirm = input("Are you sure you want to un-register (yes/no)?: ")
     if "y" not in confirm.lower():
         return False
 
