@@ -19,7 +19,6 @@ def main():
     print("Requesting login info now if not stored, come back to program when done...")
     time.sleep(2)
     userInfo = sp.current_user()['id']
-    print(userInfo)
     topTracksList = topTracks()
     if len(topTracksList) < 20:
         print("Listen to more songs and then come back to our application :)")
