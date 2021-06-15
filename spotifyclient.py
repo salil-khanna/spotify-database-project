@@ -2,7 +2,6 @@ import json
 
 import requests
 
-from track import Track
 from playlist import Playlist
 
 

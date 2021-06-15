@@ -1,18 +1,18 @@
+import os
+
+from spotifyclient import SpotifyClient
 from flask import Flask, request, redirect
 from spotipy.oauth2 import SpotifyOAuth
-import requests
 import spotipy
-
+import requests
 
 app = Flask(__name__)
 auth = SpotifyOAuth('5a1e2b28b8a043b99d5a19ffb4d8a216',
-                    'f31645c086aa4809a5fbaed43ef7ac30', "https://localhost:8000/callback&", cache_path=".spotifycache", scope="user-library-read")
+                    'f31645c086aa4809a5fbaed43ef7ac30', "http://localhost:8000/callback", cache_path=".spotifycache", scope="user-library-read user-top-read")
 
 
-# Routes
 @app.route("/")
 def index():
-    
     token_info = auth.get_cached_token()
     if not token_info:
         # If there isn't a cached token then you will be redirected to a page where you will be asked to login to spotify
@@ -21,34 +21,18 @@ def index():
         return redirect(auth_url)
 
     token = token_info['access_token']
-    
 
-    # At this point you can now create a Spotifiy instance with
-    # spotipy.client.Spotify(auth=token)
+    # the main access point for all requests and such
+    sp = spotipy.Spotify(token)
 
-    headers = {
-    'Authorization': 'Bearer {val}'.format(val=token)
-    # 'Accept': 'application/json',
-    # 'Content-Type': 'application/json'
-    }
+    top_tracks = sp.current_user_top_tracks()
+    print(top_tracks)
 
-    # base URL of all Spotify API endpoints
-    BASE_URL = 'https://api.spotify.com/v1/'
-
-    # Track ID from the URI
-    track_id = '6y0igZArWVi6Iz0rj35c1Y'
-
-    # actual GET request with proper header
-    #change the dataType to be in an if statement for the user to determine what data they want to find
-    dataType = 'me/following'
-    # r = requests.get(BASE_URL + dataType, headers=headers)
-    r = requests.get("https://api.spotify.com/v1/me/following?type=artist&limit=20", headers=headers)
-    # r = requests.get("https://api.spotify.com/v1/audio-features/06AKEBrKUckW0KREUWRnvT", headers=headers)
-    
-    r = r.json()
-    print(r)
-
-
+    results = sp.current_user_saved_tracks()
+    for idx, item in enumerate(results['items']):
+        track = item['track']
+        print(idx, track['artists'][0]['name'], " – ", track['name'])
+        
     return f"You now have an access token : {token}\n Please go back to the command line interface."
 
 
@@ -60,5 +44,8 @@ def callback():
     # Once the get_access_token function is called, a cache will be created making it possible to go through the route "/" without having to login anymore
     return redirect("/")
 
+
 if __name__ == '__main__':
+    if (os.path.exists(f".spotifycache")):
+        os.remove(f".spotifycache")
     app.run(port=8000, host="localhost", debug=True)
