@@ -33,7 +33,7 @@ def main():
             print("Valid Command List:")
             print("    -h, --help                    shows this help message")
             print("    -q, --quit                    quits out of this application")
-            print("    -gf, --getFriends             gets your friends (you follow them, they follow you)")
+            print("    -gf, --getFriends             gets your friends on SpotiStat")
             print("    -ff, --findFriends            find users of the application who have a similar music taste as you")
             print("    -cop, --createOwnPlaylist     generates a playlist based around only your tastes")
             print("    -cgp, --createGroupPlaylist   generates a playlist for you around users, public or private")
@@ -167,8 +167,9 @@ def delete_playlist(userInfo):
     for playList in allPlaylists['items']:
         if playlist_name == playList['name']:
             sp.user_playlist_unfollow(userInfo, playList['id'])
-    
-    print(f"Playlist {playlist_name} has been deleted!")
+            print(f"Playlist {playlist_name} has been deleted!")
+            return
+    print(f"Playlist {playlist_name} can not be found...")
 
 
 def unregister():
