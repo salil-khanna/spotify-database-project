@@ -3,7 +3,6 @@ import os
 from flask import Flask, request, redirect
 from spotipy.oauth2 import SpotifyOAuth
 import spotipy
-import requests
 
 app = Flask(__name__)
 auth = SpotifyOAuth('5a1e2b28b8a043b99d5a19ffb4d8a216',
