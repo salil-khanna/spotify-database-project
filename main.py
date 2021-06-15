@@ -289,6 +289,4 @@ def unregister(userID):
 
 
 if __name__ == '__main__':
-    # if (os.path.exists(f".spotifycache")):
-    #     os.remove(f".spotifycache")
     main()
