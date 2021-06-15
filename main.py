@@ -6,8 +6,11 @@ import time
 auth = SpotifyOAuth('5a1e2b28b8a043b99d5a19ffb4d8a216',
                     'f31645c086aa4809a5fbaed43ef7ac30', "http://localhost:8000/callback", cache_path=".spotifycache", scope="user-library-read user-top-read playlist-modify-public")
 
-
-sp = spotipy.Spotify(auth_manager=auth)
+token = auth.get_cached_token()['access_token']
+if token is None:
+    sp = spotipy.Spotify(auth_manager=auth)
+else:
+    sp = spotipy.Spotify(token, auth_manager=auth)
 
 
 def main():
@@ -16,6 +19,7 @@ def main():
     print("Requesting login info now if not stored, come back to program when done...")
     time.sleep(2)
     userInfo = sp.current_user()['id']
+    print(userInfo)
     topTracksList = topTracks()
     if len(topTracksList) < 20:
         print("Listen to more songs and then come back to our application :)")
