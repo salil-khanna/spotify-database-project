@@ -17,9 +17,11 @@ def main():
     time.sleep(2)
     userInfo = sp.current_user()['id']
     topTracksList = topTracks()
+    if len(topTracksList) < 20:
+        print("Listen to more songs and then come back to our application :)")
+        return
     topArtistsList = topArtists()
     topValues = analyzeVals(topTracksList) #use these values to generate similarity between users
-
     # if not db.checkUser(userInfo):
     #     db.addUser(userInfo)
     # db.addTopTracks(userInfo, topTracksList[:2])
