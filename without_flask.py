@@ -18,7 +18,7 @@ def main():
     userInfo = sp.current_user()['id']
     topTracksList = topTracks()
     topArtistsList = topArtists()
-    topValues = analyzeVals(topTracksList)
+    topValues = analyzeVals(topTracksList) #use these values to generate similarity between users
     # store the top 10 artists, and top 15 songs in the database to be accessed by another users when logged in to determine similarity, and generating group playlists
     print("Use -h or --help to see a list of valid commands...")
 
@@ -33,32 +33,24 @@ def main():
             print("Valid Command List:")
             print("    -h, --help                    shows this help message")
             print("    -q, --quit                    quits out of this application")
-            print("    -tt, --topTracks              gets your top tracks")
-            print(
-                "    -gf, --getFriends             gets your friends (you follow them, they follow you)")
+            print("    -gf, --getFriends             gets your friends (you follow them, they follow you)")
             print("    -ff, --findFriends            find users of the application who have a similar music taste as you")
-            print(
-                "    -cop, --createOwnPlaylist   generates a playlist based around only your tastes")
-            print(
-                "    -cgp, --createGroupPlaylist   generates a playlist for you around users, public or private")
-            print("    -dp, --deletePlaylist         deletes a playlist for you")
-            print(
-                "    -ur, --un-register            un-registers and deletes your info from our application")
+            print("    -cop, --createOwnPlaylist     generates a playlist based around only your tastes")
+            print("    -cgp, --createGroupPlaylist   generates a playlist for you around users, public or private")
+            print("    -dp, --deletePlaylist         deletes a playlist for you, not only from application, but spotify")
+            print("    -ur, --un-register            un-registers and deletes your info from our application")
 
-        elif command == "-tt" or command == "--topTracks":
-            topTracksList = topTracks()
-            analyzeVals(topTracksList)
         elif command == "-gf" or command == "--getFriends":
             get_friends()
         elif command == "-ff" or command == "--findFriends":
             findFriends()
         elif command == "-cop" or command == "--createOwnPlaylist":
-            create_own_playlist(userInfo, topArtistsList, topTracksList)
-            print("Your own playlist has been created! Check your Spotify account to confirm.")
+            name = create_own_playlist(userInfo, topArtistsList, topTracksList)
+            print(f"Your own playlist {name} has been created! Check your Spotify account to confirm.")
         elif command == "-cgp" or command == "--createGroupPlaylist":
             create_group_playlist()
         elif command == "-dp" or command == "--deletePlaylist":
-            delete_playlist()
+            delete_playlist(userInfo)
         elif command == "-ur" or command == "--un-register":
             unregister()
         else:
@@ -138,7 +130,7 @@ def get_playlist(playlist_name):
 def create_own_playlist(userInfo, topArtistsList, topTracksList):
     listTracks = []
     print("Generating recommendations...")
-    for i in range(2, 20, 2):
+    for i in range(2, 21, 2):
         listTracks.append(sp.recommendations(seed_tracks=topTracksList[i-2:i], seed_artists=topArtistsList[i-2:i], limit=3))
     songsForRec = list(set(extractIDFromTracks(listTracks)))
 
@@ -147,7 +139,7 @@ def create_own_playlist(userInfo, topArtistsList, topTracksList):
     sp.user_playlist_add_tracks(userInfo, val['id'], songsForRec, position=None)
 
     
-    return
+    return name
 
 
 def create_group_playlist():
@@ -162,15 +154,25 @@ def create_group_playlist():
     # min_max = db.get_min_and_max_song_features(user_ids)
     # recommendations = spotify.get_recommendations(min_max)
     # db.insert_playlist(recommendations, is_public)
+    #also store the link of playlist in database
     print(f"Playlist {name} created. SONGS IN PLAYLIST GO HERE")
 
 
-def delete_playlist(playlist_name):
+def delete_playlist(userInfo):
+    playlist_name = input("What playlist do you want to delete?: ")
+
     # db.delete_playlist(playlist_name)
-    print(f"Playlist {playlist_name} delete")
+
+    allPlaylists = sp.current_user_playlists(limit=50, offset=0)
+    for playList in allPlaylists['items']:
+        if playlist_name == playList['name']:
+            sp.user_playlist_unfollow(userInfo, playList['id'])
+    
+    print(f"Playlist {playlist_name} has been deleted!")
 
 
 def unregister():
+    # db.remove_user_info(userID)
     return
 
 
