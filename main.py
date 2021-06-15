@@ -6,9 +6,7 @@ auth = SpotifyOAuth('5a1e2b28b8a043b99d5a19ffb4d8a216',
                     'f31645c086aa4809a5fbaed43ef7ac30', "http://localhost:8000/callback", cache_path=".spotifycache", scope="user-library-read user-top-read playlist-modify-public")
 
 
-# token = auth.get_cached_token()
 sp = spotipy.Spotify(auth_manager=auth)
-# do not store users top tracks in databases, instead top values
 
 
 def main():
@@ -19,7 +17,13 @@ def main():
     topTracksList = topTracks()
     topArtistsList = topArtists()
     topValues = analyzeVals(topTracksList) #use these values to generate similarity between users
-    # store the top 10 artists, and top 15 songs in the database to be accessed by another users when logged in to determine similarity, and generating group playlists
+
+    # if not db.checkUser(userInfo):
+    #     db.addUser(userInfo)
+    # db.addTopTracks(userInfo, topTracksList[:2])
+    # db.addTopArtists(userInfo, topArtistsList[:2])
+    # db.addTopValues(userInfo, topValues)
+
     print("Use -h or --help to see a list of valid commands...")
 
     while True:
