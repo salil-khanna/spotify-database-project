@@ -158,8 +158,8 @@ def findFriends(topValues, userInfo):
     def withinX(percent): #the way it currently works is that as long as it is within a percent threshold for one category, they are included, might change this
         curVal = topValues[key]
         return curVal * (1 + percent) >= val and val <= curVal * (1 - percent)
-
-    #users = db.get_users_except_friends_and_you(userInfo) <- and remove yourself here, as well as all your friends
+    #friends = db.get_friends(userInfo) 
+    #users = db.get_users_except_friends_and_you(userInfo, friends) <- and remove yourself here, as well as all your friends
     users = ['belle', 'evan', 'glen', 'caroline']
     top99 = []
     top90 = []
@@ -193,9 +193,9 @@ def get_your_communities(userInfo):
 def get_community_playlist(userInfo):
     playlist_name = input("What community playlist do you want to search for?: ")
     playlist_users = db.users_in_playlist(playlist_name) # also retrieve the link for the playlist if any if user is in private, or any if public
-    isPublic = db.is_public_list(playlist_users)
+    # isPublic = db.is_public_list(playlist_name)
     if userInfo in playlist_users:
-        link = db.getPlaylistLink(playlist_name)
+        # link = db.getPlaylistLink(playlist_name)
         print(f"The link for '{playlist_name}' is {link} with users: ") 
         for user in playlist_users:
             print(user)
@@ -224,8 +224,10 @@ def create_own_playlist(userInfo, topArtistsList, topTracksList):
 def generate_recs(topArtistsList, topTracksList):
     listTracks = []
     print("Generating recommendations...")
-    for i in range(2, len(topTracksList) + 1, 2):
-        listTracks.append(sp.recommendations(seed_tracks=topTracksList[i-2:i], seed_artists=topArtistsList[i-2:i], limit=3)) #add more info for recommendations, min and max values
+    length = len(topTracksList)
+    indexer = int(length / 10)
+    for i in range(indexer, length + 1, indexer):
+        listTracks.append(sp.recommendations(seed_tracks=topTracksList[i-indexer:i], seed_artists=topArtistsList[i-indexer:i], limit=3)) #add more info for recommendations, min and max values
     songsForRec = list(set(extractIDFromTracks(listTracks)))
     return songsForRec
 
@@ -277,9 +279,9 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
 
     #add values of those selected
     for person in communityList: 
-        top2Artists = db.get_user_top_tracks(person)[:2]
-        #top2Tracks = db.get_top_tracks(person)[:2]
-        communityArtists += top2Artists
+        # top2Artists = db.get_user_top_artists(person)[:2]
+        top2Tracks = db.get_user_top_tracks(person)[:2]
+        # communityArtists += top2Artists
         communityTracks += top2Tracks
 
     #add values of yourself
@@ -302,7 +304,7 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     
     db.insert_friends(selected_random)
     db.insert_community_playlist(name, playlistLink, recSongs, user_id, communityList, is_public)  
-    print(f"Playlist has been created for all users in the community '{name}'!")
+    print(f"Playlist has been created for all users in the community '{name}'! Visit here: {playlistLink}")
 
 def printNames(listType, percent, count):
     print(f"Users that have a {percent}% music similarity with you:")
