@@ -4,3 +4,4 @@ flask
 spotipy
 mysql
 mysql.connector
+math

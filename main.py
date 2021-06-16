@@ -3,6 +3,8 @@ from spotipy.oauth2 import SpotifyOAuth
 import os
 import time
 from sql import group_recommendations_db 
+import math
+
 
 auth = SpotifyOAuth('5a1e2b28b8a043b99d5a19ffb4d8a216',
                     'f31645c086aa4809a5fbaed43ef7ac30', "http://localhost:8000/callback", cache_path=".spotifycache", 
@@ -225,7 +227,7 @@ def generate_recs(topArtistsList, topTracksList):
     listTracks = []
     print("Generating recommendations...")
     length = len(topTracksList)
-    indexer = int(length / 10)
+    indexer = math.floor(length / 10)
     for i in range(indexer, length + 1, indexer):
         listTracks.append(sp.recommendations(seed_tracks=topTracksList[i-indexer:i], seed_artists=topArtistsList[i-indexer:i], limit=3)) #add more info for recommendations, min and max values
     songsForRec = list(set(extractIDFromTracks(listTracks)))
@@ -245,17 +247,32 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     #have to figure out what happens if you have less than 3 friends, or maybe less than 7 users in table, also need to do all the error checking if user types bad inputs
     name = input("Enter a name for this community playlist: ")
 
+    satisfy = 4
     friends = get_friends() 
-    user_ids = input(
-        "Select 3 of your friends to base this playlist on (indices with spaces): ")
-    user_ids = user_ids.split()
-    user_ids = [int(i) for i in user_ids]
-    selected_friends = []
-    for i in user_ids:
-        selected_friends.append(friends[i-1])
-    
+    if len(friends) == 0:
+        print("Select your friends. Wait..., your friends list is empty! Moving onto other users...")
+    else:
+        user_ids = input(
+            "Select 1 or 2 of your friends to base this playlist on (indice(s) with spaces): ")
+        user_ids = user_ids.split()
+        while len(user_ids) > 2 or len(user_ids) < 1:
+            user_ids = input("Please choose a valid set of indice(s): ")
+            user_ids = user_ids.split()
+            try: 
+                user_ids = [int(i) for i in user_ids]
+            except ValueError:
+                user_ids = []
+            for i in user_ids:
+                if i > len(friends) or i < 1:
+                    print("Some indice is out of bounds...")
+                    break
+
+        selected_friends = []
+        for i in user_ids:
+            selected_friends.append(friends[i-1])
+        satisfy -= len(selected_friends)
+
     top99, top90, top75, top50 = findFriends(topValues)   
-     # show 3 friends, 6 random + 1 yourself, : 10 users and then something public about their listening history, enter indices of users you want to make playlist with
      # so maybe get rid of findFriends method and instead show blob about all users? or maybe only show blob of top similarity users, idk blobs for everyone seems like alot
     count = 1
     count = printNames(top99, 99, count)
@@ -265,8 +282,21 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
 
     megaList = top99 + top90 + top75 + top50
     random_ids = input(
-        "Select 6 random users to base this playlist on (indices with spaces): ")
+        f"Select {satisfy} random users to base this playlist on (indices with spaces): ")
     random_ids = random_ids.split()
+
+    while len(random_ids) != satisfy:
+        random_ids = input(f"Please choose {satisfy} valid indices: ")
+        random_ids = random_ids.split()
+        try: 
+            random_ids = [int(i) for i in random_ids]
+        except ValueError:
+            random_ids = []
+        for i in random_ids:
+            if i > len(megaList) or i < 1:
+                print("Some indice is out of bounds...")
+                break
+
     random_ids = [int(i) for i in random_ids]
     selected_random = []
     for i in random_ids:
@@ -279,8 +309,8 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
 
     #add values of those selected
     for person in communityList: 
-        # top2Artists = db.get_user_top_artists(person)[:2]
-        top2Tracks = db.get_user_top_tracks(person)[:2]
+        # top2Artists = db.get_user_top_artists(person)[:4]
+        top2Tracks = db.get_user_top_tracks(person)[:4]
         # communityArtists += top2Artists
         communityTracks += top2Tracks
 
@@ -302,7 +332,16 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
 
     user_id = db.get_user_id_from_spotify_id(userInfo)
     
-    db.insert_friends(selected_random)
+    become_friends = input(
+        "Do you want to become friends with randoms on this list? (Enter \"yes\" or \"no\"): ")
+    if "yes" in become_friends:
+        become_friends = True
+    else:
+        become_friends = False
+
+    if become_friends:
+        db.insert_friends(selected_random)
+
     db.insert_community_playlist(name, playlistLink, recSongs, user_id, communityList, is_public)  
     print(f"Playlist has been created for all users in the community '{name}'! Visit here: {playlistLink}")
 
