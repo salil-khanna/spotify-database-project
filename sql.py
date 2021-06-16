@@ -20,6 +20,7 @@ class group_recommendations_db():
             else:
                 print(err)
 
+
     def query_gets_attrs(self, query, query_args):
         """
         Helper method that executes a query. Hardcodes column values, so should only be used if the

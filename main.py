@@ -2,6 +2,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import os
 import time
+from sql import group_recommendations_db 
 
 auth = SpotifyOAuth('5a1e2b28b8a043b99d5a19ffb4d8a216',
                     'f31645c086aa4809a5fbaed43ef7ac30', "http://localhost:8000/callback", cache_path=".spotifycache", 
@@ -13,6 +14,7 @@ if token is None:
 else:
     sp = spotipy.Spotify(token['access_token'], auth_manager=auth)
 
+db = group_recommendations_db()
 
 def main():
     print("Welcome to SpotiStat, an application used to connect your music taste with others around the globe!")
@@ -21,16 +23,30 @@ def main():
     time.sleep(2)
     userInfo = sp.current_user()['id']
     topTracksList = topTracks()
-    if len(topTracksList) < 20:
-        print("Listen to more songs and then come back to our application :)")
-        return
+
     topArtistsList = topArtists()
-    topValues = analyzeVals(topTracksList) #use these values to generate similarity between users
-    # if not db.checkUser(userInfo):
-    #     db.addUser(userInfo)
-    # db.addTopTracks(userInfo, topTracksList[:2])
-    # db.addTopArtists(userInfo, topArtistsList[:2])
-    # db.addTopValues(userInfo, topValues)
+    if len(topTracksList) < 20 or len(topArtistsList) < 20:
+        print("Listen to more songs and artists and then come back to our application :)")
+        return
+    topValues = analyzeVals(topTracksList) 
+    sqlId = db.get_user_id_from_spotify_id(userInfo)
+
+    copyTrackList = []
+    for idx, id in enumerate(topTracksList):
+        copyTrackList.append((id, idx + 1))
+
+    copyArtistList = []
+    for idx, id in enumerate(topArtistsList):
+        copyArtistList.append((id, idx + 1))
+
+    if sqlId is None:
+        db.insert_user(userInfo)
+        sqlId = db.get_user_id_from_spotify_id(userInfo)
+        db.insert_top_tracks(sqlId, copyTrackList)
+        # db.insert_top_artists(sqlId, copyArtistList)
+    else:
+        db.update_user_top_tracks(userInfo, copyTrackList)
+        # db.update_user_top_tracks(sqlId, copyArtistList)
 
     print("Use -h or --help to see a list of valid commands...")
 
@@ -132,9 +148,9 @@ def analyzeVals(topTracksList):
 
 
 def get_friends(userInfo):
-    # friends = db.get_friends(userInfo) 
-    for friend in friends:
-        print(friend)
+    friends = db.get_friends(userInfo) 
+    for idx, friend in enumerate(friends):
+        print(f"{idx + 1}. {friend}")
     return friends
 
 
@@ -150,8 +166,8 @@ def findFriends(topValues, userInfo):
     top75 = []
     top50 = []
     for user in users:
-        #topTrack = db.get_averages(user)
-        # userAverages = analyzeVals(topTracks)
+        topTracks = db.get_user_top_tracks(user)
+        userAverages = analyzeVals(topTracks)
         for key, val in enumerate(userAverages):
             if withinX(.01):
                 top99.add(user)
@@ -175,9 +191,24 @@ def get_your_communities(userInfo):
 
 
 def get_community_playlist(userInfo):
-    # playlist_name = input("What community playlist do you want to search for?: ")
-    # playlist = db.get_playlist(userInfo, playlist_name), also retrieve the link for the playlist if any if user is in private, or any if public
-    # print(playlist)
+    playlist_name = input("What community playlist do you want to search for?: ")
+    playlist_users = db.users_in_playlist(playlist_name) # also retrieve the link for the playlist if any if user is in private, or any if public
+    isPublic = db.is_public_list(playlist_users)
+    if userInfo in playlist_users:
+        link = db.getPlaylistLink(playlist_name)
+        print(f"The link for '{playlist_name}' is {link} with users: ") 
+        for user in playlist_users:
+            print(user)
+    elif isPublic:
+        link = db.getPlaylistLink(playlist_name)
+        print(f"The link for '{playlist_name}' is {link} with users: ") 
+        for user in playlist_users:
+            print(user)
+    elif not isPublic:
+        print("Sorry, the playlist is private")
+    else:
+        print("Invalid community name.")
+
     return
 
 
@@ -198,14 +229,13 @@ def generate_recs(topArtistsList, topTracksList):
     songsForRec = list(set(extractIDFromTracks(listTracks)))
     return songsForRec
 
-def createAndPopulatePlayList(communityList, name, songsForRec, publicVal, userInfo): #change so that whoever creates the playlist is the owner, but for everyone else (and owner), they get a link added to their database values
+def createAndPopulatePlayList(communityList, name, songsForRec, publicVal, userInfo): 
     val = sp.user_playlist_create(userInfo, name, public=(len(communityList) == 0), collaborative=(len(communityList) != 0), description='')
     sp.user_playlist_add_tracks(userInfo, val['id'], songsForRec, position=None)
     for member in communityList:
         priv = sp.user_playlist_create(member, name, public=publicVal, collaborative=False, description='')
         sp.user_playlist_add_tracks(member, priv['id'], songsForRec, position=None)
-        #db.storeLink(member, val['external_urls']['spotify'])
-    return
+    return val['external_urls']['spotify']
 
 
 def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
@@ -213,7 +243,7 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     #have to figure out what happens if you have less than 3 friends, or maybe less than 7 users in table, also need to do all the error checking if user types bad inputs
     name = input("Enter a name for this community playlist: ")
 
-    friends = get_friends() # <= print out this list in the get_friends method
+    friends = get_friends() 
     user_ids = input(
         "Select 3 of your friends to base this playlist on (indices with spaces): ")
     user_ids = user_ids.split()
@@ -247,7 +277,7 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
 
     #add values of those selected
     for person in communityList: 
-        #top2Artists = db.get_top_artists(person)[:2]
+        top2Artists = db.get_user_top_tracks(person)[:2]
         #top2Tracks = db.get_top_tracks(person)[:2]
         communityArtists += top2Artists
         communityTracks += top2Tracks
@@ -256,17 +286,22 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     communityArtists += topArtistsList[:2]
     communityTracks += topTracksList[:2]
 
-    # communityList.append(userInfo) #add yourself to community list
 
     is_public = input(
         "Is this a public or private playlist? (Enter \"public\" or \"private\"): ")
-
+    if "public" in is_public:
+        is_public = True
+    else:
+        is_public = False
+    
     recSongs = generate_recs(communityArtists, communityTracks)
 
-    createAndPopulatePlayList(communityList, name, recSongs, is_public, userInfo)
+    playlistLink = createAndPopulatePlayList(communityList, name, recSongs, is_public, userInfo)
 
-    # db.insert_playlist(recommendations, is_public), add value to database
-    #also store the link of playlist in database
+    user_id = db.get_user_id_from_spotify_id(userInfo)
+    
+    db.insert_friends(selected_random)
+    db.insert_community_playlist(name, playlistLink, recSongs, user_id, communityList, is_public)  
     print(f"Playlist has been created for all users in the community '{name}'!")
 
 def printNames(listType, percent, count):
@@ -279,12 +314,11 @@ def printNames(listType, percent, count):
 def delete_playlist(userInfo):
     playlist_name = input("What playlist do you want to delete?: ")
 
-    # db.delete_playlist(userInfo, playlist_name)
-
     allPlaylists = sp.current_user_playlists(limit=50, offset=0)
     for playList in allPlaylists['items']:
         if playlist_name == playList['name']:
             sp.user_playlist_unfollow(userInfo, playList['id'])
+            db.delete_playlist(userInfo, playlist_name)
             print(f"Playlist '{playlist_name}' has been deleted!")
             return
     print(f"Playlist '{playlist_name}' can not be found...")
@@ -300,7 +334,7 @@ def unregister(userID):
     if "y" not in confirm.lower():
         return False
 
-    # db.remove_user_info(userID)
+    db.remove_user(userID)
     logout()
     return True
 
