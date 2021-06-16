@@ -188,7 +188,10 @@ def findFriends(topValues, userInfo):
 
 
 def get_your_communities(userInfo):
-    # db.get_your_communities(userInfo)
+    # playlists = db.get_your_communities(userInfo)
+    print("The playlists you are a part of include: ")
+    for idx, playlist in enumerate(playlists):
+        print(f"{idx + 1}. {playlist}")
     return
 
 
