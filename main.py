@@ -252,6 +252,14 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
 
     satisfy = 4
     friends = get_friends() 
+    top99, top90, top75, top50 = findFriends(topValues)   
+     # so maybe get rid of findFriends method and instead show blob about all users? or maybe only show blob of top similarity users, idk blobs for everyone seems like alot
+    megaList = top99 + top90 + top75 + top50
+    if len(friends) == 0 and len(megaList) == 0:
+        print("Unable to create group playlist..., listen to more songs or wait for more users to join the application!")
+        return
+    
+    selected_friends = []
     if len(friends) == 0:
         print("Select your friends. Wait..., your friends list is empty! Moving onto other users...")
     else:
@@ -269,41 +277,42 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
                 if i > len(friends) or i < 1:
                     print("Some indice is out of bounds...")
                     break
-
-        selected_friends = []
         for i in user_ids:
             selected_friends.append(friends[i-1])
         satisfy -= len(selected_friends)
 
-    top99, top90, top75, top50 = findFriends(topValues)   
-     # so maybe get rid of findFriends method and instead show blob about all users? or maybe only show blob of top similarity users, idk blobs for everyone seems like alot
-    count = 1
-    count = printNames(top99, 99, count)
-    count = printNames(top90, 90, count)
-    count = printNames(top75, 75, count)
-    count = printNames(top50, 50, count)
 
-    megaList = top99 + top90 + top75 + top50
-    random_ids = input(
-        f"Select {satisfy} random users to base this playlist on (indices with spaces): ")
-    random_ids = random_ids.split()
 
-    while len(random_ids) != satisfy:
-        random_ids = input(f"Please choose {satisfy} valid indices: ")
-        random_ids = random_ids.split()
-        try: 
-            random_ids = [int(i) for i in random_ids]
-        except ValueError:
-            random_ids = []
-        for i in random_ids:
-            if i > len(megaList) or i < 1:
-                print("Some indice is out of bounds...")
-                break
-
-    random_ids = [int(i) for i in random_ids]
     selected_random = []
-    for i in random_ids:
-        selected_random.append(megaList[i-1])
+    if len(megaList) < satisfy:
+        print("There are not enough users that are similar to you...")
+    else:
+        count = 1
+        count = printNames(top99, 99, count)
+        count = printNames(top90, 90, count)
+        count = printNames(top75, 75, count)
+        count = printNames(top50, 50, count)
+
+        
+        random_ids = input(
+            f"Select {satisfy} random users to base this playlist on (indices with spaces): ")
+        random_ids = random_ids.split()
+
+        while len(random_ids) != satisfy:
+            random_ids = input(f"Please choose {satisfy} valid indices: ")
+            random_ids = random_ids.split()
+            try: 
+                random_ids = [int(i) for i in random_ids]
+            except ValueError:
+                random_ids = []
+            for i in random_ids:
+                if i > len(megaList) or i < 1:
+                    print("Some indice is out of bounds...")
+                    break
+
+        random_ids = [int(i) for i in random_ids]
+        for i in random_ids:
+            selected_random.append(megaList[i-1])
 
 
     communityList = selected_friends + selected_random
