@@ -2,3 +2,5 @@
 # $ pip install -r requirements.txt
 flask
 spotipy
+mysql
+mysql.connector

@@ -4,7 +4,8 @@ import os
 import time
 
 auth = SpotifyOAuth('5a1e2b28b8a043b99d5a19ffb4d8a216',
-                    'f31645c086aa4809a5fbaed43ef7ac30', "http://localhost:8000/callback", cache_path=".spotifycache", scope="user-library-read user-top-read playlist-modify-public")
+                    'f31645c086aa4809a5fbaed43ef7ac30', "http://localhost:8000/callback", cache_path=".spotifycache", 
+                    scope="user-library-read user-top-read playlist-modify-public playlist-modify-private playlist-read-collaborative")
 
 token = auth.get_cached_token()
 if token is None:
@@ -51,6 +52,7 @@ def main():
             print("    -gcp, --getCommunityPlaylist  gets the usernames of people in your community and the songs in the respective playlist")
             print("    -gyc, --getYourCommunities    gets the names of all your communities")
             print("    -dp, --deletePlaylist         deletes a playlist for you, not only from application, but spotify")
+            print("    -lo, --logout                 logs you out of the application, requiring you to sign in again")
             print("    -ur, --un-register            un-registers and deletes your info from our application")
 
         elif command == "-gf" or command == "--getFriends":
@@ -58,7 +60,7 @@ def main():
         elif command == "-ff" or command == "--findFriends":
             findFriends(topValues, userInfo)
         elif command == "-cop" or command == "--createOwnPlaylist":
-            name = create_own_playlist([userInfo], topArtistsList, topTracksList)
+            name = create_own_playlist(userInfo, topArtistsList, topTracksList)
             print(f"Your own playlist '{name}' has been created! Check your Spotify account to confirm.")
         elif command == "-cgp" or command == "--createGroupPlaylist":
             create_group_playlist(topValues, userInfo, topArtistsList, topTracksList)
@@ -68,6 +70,9 @@ def main():
             get_your_communities(userInfo)        
         elif command == "-dp" or command == "--deletePlaylist":
             delete_playlist(userInfo)
+        elif command == "-lo" or command == "--logout":
+            logout()
+            break
         elif command == "-ur" or command == "--un-register":
             answer = unregister(userInfo)
             if answer:
@@ -145,7 +150,8 @@ def findFriends(topValues, userInfo):
     top75 = []
     top50 = []
     for user in users:
-        #userAverages = db.get_averages(user)
+        #topTrack = db.get_averages(user)
+        # userAverages = analyzeVals(topTracks)
         for key, val in enumerate(userAverages):
             if withinX(.01):
                 top99.add(user)
@@ -180,23 +186,25 @@ def create_own_playlist(userInfo, topArtistsList, topTracksList):
 
     name = input("Enter a name for this playlist: ")
     
-    createAndPopulatePlayList(userInfo, name, songsForRec, True)
+    createAndPopulatePlayList([], name, songsForRec, True, userInfo)
     
     return name
 
 def generate_recs(topArtistsList, topTracksList):
     listTracks = []
     print("Generating recommendations...")
-    for i in range(2, 21, 2):
-        listTracks.append(sp.recommendations(seed_tracks=topTracksList[i-2:i], seed_artists=topArtistsList[i-2:i], limit=3))
+    for i in range(2, len(topTracksList) + 1, 2):
+        listTracks.append(sp.recommendations(seed_tracks=topTracksList[i-2:i], seed_artists=topArtistsList[i-2:i], limit=3)) #add more info for recommendations, min and max values
     songsForRec = list(set(extractIDFromTracks(listTracks)))
     return songsForRec
 
-def createAndPopulatePlayList(userInfo, name, songsForRec, publicVal):
-    for user in userInfo:
-        # should it be collaborative? personally i think yes
-        val = sp.user_playlist_create(user, name, public=publicVal, collaborative=False, description='')
-        sp.user_playlist_add_tracks(user, val['id'], songsForRec, position=None)
+def createAndPopulatePlayList(communityList, name, songsForRec, publicVal, userInfo): #change so that whoever creates the playlist is the owner, but for everyone else (and owner), they get a link added to their database values
+    val = sp.user_playlist_create(userInfo, name, public=(len(communityList) == 0), collaborative=(len(communityList) != 0), description='')
+    sp.user_playlist_add_tracks(userInfo, val['id'], songsForRec, position=None)
+    for member in communityList:
+        priv = sp.user_playlist_create(member, name, public=publicVal, collaborative=False, description='')
+        sp.user_playlist_add_tracks(member, priv['id'], songsForRec, position=None)
+        #db.storeLink(member, val['external_urls']['spotify'])
     return
 
 
@@ -248,15 +256,14 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     communityArtists += topArtistsList[:2]
     communityTracks += topTracksList[:2]
 
-    communityList.append(userInfo) #add yourself to community list
-
+    # communityList.append(userInfo) #add yourself to community list
 
     is_public = input(
         "Is this a public or private playlist? (Enter \"public\" or \"private\"): ")
 
     recSongs = generate_recs(communityArtists, communityTracks)
 
-    createAndPopulatePlayList(communityList, name, recSongs, is_public)
+    createAndPopulatePlayList(communityList, name, recSongs, is_public, userInfo)
 
     # db.insert_playlist(recommendations, is_public), add value to database
     #also store the link of playlist in database
@@ -283,6 +290,10 @@ def delete_playlist(userInfo):
     print(f"Playlist '{playlist_name}' can not be found...")
 
 
+def logout():
+    if (os.path.exists(f".spotifycache")):
+        os.remove(f".spotifycache")
+
 def unregister(userID):
     
     confirm = input("Are you sure you want to un-register (yes/no)?: ")
@@ -290,8 +301,7 @@ def unregister(userID):
         return False
 
     # db.remove_user_info(userID)
-    if (os.path.exists(f".spotifycache")):
-        os.remove(f".spotifycache")
+    logout()
     return True
 
 
