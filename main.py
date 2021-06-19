@@ -31,7 +31,7 @@ def main():
         print("Listen to more songs and artists and then come back to our application :)")
         return
     topValues = analyzeVals(topTracksList) 
-    exists = db.get_user_top_tracks(userInfo)
+    exists = db.user_id_exists(userInfo)
 
     copyTrackList = []
     for idx, id in enumerate(topTracksList):
@@ -41,13 +41,25 @@ def main():
     for idx, id in enumerate(topArtistsList):
         copyArtistList.append((idx + 1, id ))
 
-    if len(exists) == 0:
+
+
+    if not exists:
         db.insert_user(userInfo)
+        for track in topTracksList:
+            db.insert_song(track, "", 0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+    
+        for artist in topArtistsList:
+            db.insert_artist(artist)
         db.insert_top_tracks(userInfo, copyTrackList)
         db.insert_top_artists(userInfo, copyArtistList)
     else:
+        for track in topTracksList:
+            db.insert_song(track, "", 0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+    
+        for artist in topArtistsList:
+            db.insert_artist(artist)
         db.update_user_top_tracks(userInfo, copyTrackList)
-        db.update_user_top_tracks(userInfo, copyArtistList)
+        db.update_user_top_artists(userInfo, copyArtistList)
 
     print("Use -h or --help to see a list of valid commands...")
 
@@ -149,9 +161,12 @@ def analyzeVals(topTracksList):
 
 
 def get_friends(userInfo):
-    friends = db.get_friends(userInfo) 
-    for idx, friend in enumerate(friends):
-        print(f"{idx + 1}. {friend}")
+    friends = db.get_friends(userInfo)
+    if len(friends) == 0:
+        print("You have no friends!")
+    else:
+        for idx, friend in enumerate(friends):
+            print(f"{idx + 1}. {friend}")
     return friends
 
 
@@ -249,8 +264,8 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     name = input("Enter a name for this community playlist: ")
 
     satisfy = 4
-    friends = get_friends() 
-    top99, top90, top75, top50 = findFriends(topValues)   
+    friends = get_friends(userInfo) 
+    top99, top90, top75, top50 = findFriends(topValues, userInfo)   
      # so maybe get rid of findFriends method and instead show blob about all users? or maybe only show blob of top similarity users, idk blobs for everyone seems like alot
     megaList = top99 + top90 + top75 + top50
     if len(friends) == 0 and len(megaList) == 0:
@@ -348,8 +363,9 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     else:
         become_friends = False
 
+
     if become_friends:
-        db.insert_friends(selected_random)
+        db.insert_friends(selected_random) #update it so selected_random is a tuple
 
     listFriends = db.get_friends(userInfo)
     db.insert_community_playlist(name, playlistId, recSongs, userInfo, listFriends, playlistLink, is_public)
@@ -369,9 +385,13 @@ def delete_playlist(userInfo):
     for playList in allPlaylists['items']:
         if playlist_name == playList['name']:
             sp.user_playlist_unfollow(userInfo, playList['id'])
-            db.delete_playlist(userInfo, playlist_name)
             print(f"Playlist '{playlist_name}' has been deleted!")
+            playlists = db.get_your_playlists(playlist_name)
+    
+            if playlist_name in playlists:
+                db.delete_playlist(userInfo, playlist_name)
             return
+    
     print(f"Playlist '{playlist_name}' can not be found...")
 
 

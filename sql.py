@@ -3,14 +3,15 @@ from mysql.connector import errorcode
 
 class group_recommendations_db():
     def __init__(self):
-        #Insert your own parameters 
-        configs = {
-            'user': 'USERNAME',
-            'password': 'PASSWORD',
-            'host': 'HOSTADDRESS',
-            'database': 'DATABASENAME',
-            'raise_on_warnings': True
-        }
+
+        #Insert your own parameters
+        # configs = {
+        #     'user': 'USERNAME',
+        #     'password': 'PASSWORD',
+        #     'host': 'HOSTADDRESS',
+        #     'database': 'DATABASENAME',
+        #     'raise_on_warnings': True
+        # }
         try:
             self.db = mysql.connector.connect(**configs)
             self.cursor = self.db.cursor(buffered=True)
@@ -427,6 +428,11 @@ class group_recommendations_db():
         sql = f'INSERT INTO user VALUES ("{spotify_id}")'
         self.insert(sql)
 
+    def user_id_exists(self, spotify_id):
+        query = f' SELECT EXISTS(SELECT * FROM user WHERE spotify_id = "{spotify_id}")'
+        self.cursor.execute(query)
+        result = self.cursor.fetchone()
+        return result[0] == 1
 
     def insert_friends(self, friends):
         # friends format: [(user_spotify_id1, user-spotify_id1), ....]
@@ -450,7 +456,6 @@ class group_recommendations_db():
         if is_public:
             user_ids += [(u,) for u in friend_user_ids]
         insert_users = f'INSERT INTO user_has_playlist VALUES (%s, "{spotify_playlist_id}")'
-        print(insert_users, user_ids)
         self.insert_many(insert_users, user_ids)
 
 
@@ -459,6 +464,7 @@ class group_recommendations_db():
 
     def insert_top_tracks(self, user_spotify_id, tracks):
         # tracks format: [(rank, song_id), ....]
+        
         sql = f'INSERT INTO top_track VALUES ( %s, "{user_spotify_id}", %s)'
         self.insert_many(sql, tracks)
 
@@ -473,7 +479,6 @@ class group_recommendations_db():
     def insert_top_artists(self, user_spotify_id, tracks):
         # artist format: [(rank, spotify_artist_id), ....]
         sql = f'INSERT INTO top_artist (user_spotify_id, top_artist.rank, artist_spotify_id) VALUES ("{user_spotify_id}", %s, %s)'
-        print(sql, tracks)
         self.insert_many(sql, tracks)
 
 
@@ -498,7 +503,7 @@ class group_recommendations_db():
                     time_signature,
                     valence):
 
-        if db.get_song(spotify_id):
+        if self.get_song(spotify_id):
             # song already exists
             return
 
@@ -527,7 +532,6 @@ class group_recommendations_db():
         delete_songs = f'DELETE FROM playlist_has_song WHERE playlist_spotify_id = "{spotify_playlist_id}"'
         delete_user_access = f'DELETE FROM user_has_playlist WHERE playlist_spotify_id = "{spotify_playlist_id}"'
         delete_playlist = f'DELETE FROM playlist WHERE spotify_id = "{spotify_playlist_id}"'
-        print(delete_songs)
         self.cursor.execute(delete_songs)
         self.cursor.execute(delete_user_access)
         self.cursor.execute(delete_playlist)
