@@ -240,7 +240,7 @@ def createAndPopulatePlayList(communityList, name, songsForRec, publicVal, userI
     for member in communityList:
         priv = sp.user_playlist_create(member, name, public=publicVal, collaborative=False, description='')
         sp.user_playlist_add_tracks(member, priv['id'], songsForRec, position=None)
-    return val['external_urls']['spotify']
+    return val['external_urls']['spotify'], val['id']
 
 
 def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
@@ -339,7 +339,7 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     
     recSongs = generate_recs(communityArtists, communityTracks)
 
-    playlistLink = createAndPopulatePlayList(communityList, name, recSongs, is_public, userInfo)
+    playlistLink, playlistId = createAndPopulatePlayList(communityList, name, recSongs, is_public, userInfo)
     
     become_friends = input(
         "Do you want to become friends with randoms on this list? (Enter \"yes\" or \"no\"): ")
@@ -351,7 +351,8 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     if become_friends:
         db.insert_friends(selected_random)
 
-    db.insert_community_playlist(name, playlistLink, recSongs, userInfo, communityList, is_public)  
+    listFriends = db.get_friends(userInfo)
+    db.insert_community_playlist(name, playlistId, recSongs, userInfo, listFriends, playlistLink, is_public)
     print(f"Playlist has been created for all users in the community '{name}'! Visit here: {playlistLink}")
 
 def printNames(listType, percent, count):
