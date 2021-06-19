@@ -31,24 +31,23 @@ def main():
         print("Listen to more songs and artists and then come back to our application :)")
         return
     topValues = analyzeVals(topTracksList) 
-    sqlId = db.get_user_id_from_spotify_id(userInfo)
+    exists = db.get_user_top_tracks(userInfo)
 
     copyTrackList = []
     for idx, id in enumerate(topTracksList):
-        copyTrackList.append((id, idx + 1))
+        copyTrackList.append((idx + 1, id))
 
     copyArtistList = []
     for idx, id in enumerate(topArtistsList):
-        copyArtistList.append((id, idx + 1))
+        copyArtistList.append((idx + 1, id ))
 
-    if sqlId is None:
+    if len(exists) == 0:
         db.insert_user(userInfo)
-        sqlId = db.get_user_id_from_spotify_id(userInfo)
-        db.insert_top_tracks(sqlId, copyTrackList)
-        # db.insert_top_artists(sqlId, copyArtistList)
+        db.insert_top_tracks(userInfo, copyTrackList)
+        db.insert_top_artists(userInfo, copyArtistList)
     else:
         db.update_user_top_tracks(userInfo, copyTrackList)
-        # db.update_user_top_tracks(sqlId, copyArtistList)
+        db.update_user_top_tracks(userInfo, copyArtistList)
 
     print("Use -h or --help to see a list of valid commands...")
 
@@ -160,9 +159,8 @@ def findFriends(topValues, userInfo):
     def withinX(percent): #the way it currently works is that as long as it is within a percent threshold for one category, they are included, might change this
         curVal = topValues[key]
         return curVal * (1 + percent) >= val and val <= curVal * (1 - percent)
-    #friends = db.get_friends(userInfo) 
-    #users = db.get_users_except_friends_and_you(userInfo, friends) <- and remove yourself here, as well as all your friends
-    users = ['belle', 'evan', 'glen', 'caroline']
+    friends = db.get_friends(userInfo) 
+    users = db.get_users_except_friends_and_you(userInfo, friends)
     top99 = []
     top90 = []
     top75 = []
@@ -188,7 +186,7 @@ def findFriends(topValues, userInfo):
 
 
 def get_your_communities(userInfo):
-    # playlists = db.get_your_communities(userInfo)
+    playlists = db.get_your_playlists(userInfo)
     print("The playlists you are a part of include: ")
     for idx, playlist in enumerate(playlists):
         print(f"{idx + 1}. {playlist}")
@@ -198,9 +196,9 @@ def get_your_communities(userInfo):
 def get_community_playlist(userInfo):
     playlist_name = input("What community playlist do you want to search for?: ")
     playlist_users = db.users_in_playlist(playlist_name) # also retrieve the link for the playlist if any if user is in private, or any if public
-    # isPublic = db.is_public_list(playlist_name)
+    isPublic = db.is_public_list(playlist_name)
     if userInfo in playlist_users:
-        # link = db.getPlaylistLink(playlist_name)
+        link = db.getPlaylistLink(playlist_name)
         print(f"The link for '{playlist_name}' is {link} with users: ") 
         for user in playlist_users:
             print(user)
@@ -320,15 +318,16 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     communityTracks = []
 
     #add values of those selected
+    amount = math.floor(20 / (len(communityList) + 1))
     for person in communityList: 
-        # top2Artists = db.get_user_top_artists(person)[:4]
-        top2Tracks = db.get_user_top_tracks(person)[:4]
-        # communityArtists += top2Artists
-        communityTracks += top2Tracks
+        top4Artists = db.get_user_top_artists(person)[:amount]
+        top4Tracks = db.get_user_top_tracks(person)[:amount]
+        communityArtists += top4Artists
+        communityTracks += top4Tracks
 
     #add values of yourself
-    communityArtists += topArtistsList[:2]
-    communityTracks += topTracksList[:2]
+    communityArtists += topArtistsList[:amount]
+    communityTracks += topTracksList[:amount]
 
 
     is_public = input(
@@ -341,8 +340,6 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     recSongs = generate_recs(communityArtists, communityTracks)
 
     playlistLink = createAndPopulatePlayList(communityList, name, recSongs, is_public, userInfo)
-
-    user_id = db.get_user_id_from_spotify_id(userInfo)
     
     become_friends = input(
         "Do you want to become friends with randoms on this list? (Enter \"yes\" or \"no\"): ")
@@ -354,7 +351,7 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     if become_friends:
         db.insert_friends(selected_random)
 
-    db.insert_community_playlist(name, playlistLink, recSongs, user_id, communityList, is_public)  
+    db.insert_community_playlist(name, playlistLink, recSongs, userInfo, communityList, is_public)  
     print(f"Playlist has been created for all users in the community '{name}'! Visit here: {playlistLink}")
 
 def printNames(listType, percent, count):
