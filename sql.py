@@ -3,10 +3,12 @@ from mysql.connector import errorcode
 
 class group_recommendations_db():
     def __init__(self):
+        #Insert your own parameters 
         configs = {
-            'user': 'root',
-            'password': 'Q&mi95Xe8ETakW',
-            'database': 'group_recommendations',
+            'user': 'USERNAME',
+            'password': 'PASSWORD',
+            'host': 'HOSTADDRESS',
+            'database': 'DATABASENAME',
             'raise_on_warnings': True
         }
         try:
