@@ -4,6 +4,7 @@ import os
 import time
 from sql import group_recommendations_db
 import math
+import random
 
 auth = SpotifyOAuth(
     "5a1e2b28b8a043b99d5a19ffb4d8a216",
@@ -203,33 +204,42 @@ def get_friends(userInfo):
         print("You have no friends!")
     else:
         for idx, friend in enumerate(friends):
-            print(f"{idx + 1}. {friend}")
+            print(f"{idx + 1}. {sp.user(friend)['display_name']}")
     return friends
 
 
 def findFriends(topValues, userInfo):
-    allUserDisplays = []
 
     print("Check out these users!")
-    print("spotify_id          similarity          top 3 artists          top track")
-    for row in allUserDisplays:
-        print("{:< 20} {: <20} {: <20} {: <20}".format(*row))
-    users = db.get_users_except_friends_and_you(userInfo, get_friends(userInfo))
-    for user in users:
-        userDisplay = []
-        userDisplay.append(user)
+    print(
+        "index        name          similarity          top artist          top track"
+    )
+    users = db.get_users_except_friends_and_you(userInfo, db.get_friends(userInfo))
+    music_similarity(userInfo, users, 0)
+    print("Make at least one playlist with them to become friends!")
+    return
+
+
+def music_similarity(primaryUser, usersComparing, startingIdx):
+    primaryUserVals = analyzeVals(db.get_user_top_tracks(primaryUser))
+    idx = startingIdx
+    for user in usersComparing:
+        idx += 1
+        name = sp.user(user)["display_name"]
         topartist = sp.artist(db.get_user_top_artists(user)[1])
         toptrack = sp.track(db.get_user_top_tracks(user)[1])
         userAverage = analyzeVals(db.get_user_top_tracks(user))
-        score = pow(userAverage["acousticness"] - topValues["acousticness"], 2)
-        +pow(userAverage["danceability"] - topValues["danceability"], 2)
-        +pow(userAverage["energy"] - topValues["energy"], 2)
-        +pow(userAverage["instrumentalness"] - topValues["instrumentalness"], 2)
-        +pow(userAverage["liveness"] - topValues["liveness"], 2)
-        +pow(userAverage["speechiness"] - topValues["speechiness"], 2)
-        +pow(userAverage["valence"] - topValues["valence"], 2)
-        +pow((userAverage["tempo"] - topValues["tempo"]) / 1000, 2)
-        print(f"{user}        {(1-score)*100}%")
+        score = pow(userAverage["acousticness"] - primaryUserVals["acousticness"], 2)
+        +pow(userAverage["danceability"] - primaryUserVals["danceability"], 2)
+        +pow(userAverage["energy"] - primaryUserVals["energy"], 2)
+        +pow(userAverage["instrumentalness"] - primaryUserVals["instrumentalness"], 2)
+        +pow(userAverage["liveness"] - primaryUserVals["liveness"], 2)
+        +pow(userAverage["speechiness"] - primaryUserVals["speechiness"], 2)
+        +pow(userAverage["valence"] - primaryUserVals["valence"], 2)
+        +pow((userAverage["tempo"] - primaryUserVals["tempo"]) / 1000, 2)
+        print(
+            f"{idx}           {name}        {(1-score)*100}%       {topartist['name']}       {toptrack['name']}"
+        )
     return
 
 
@@ -300,91 +310,53 @@ def createAndPopulatePlayList(communityList, name, songsForRec, publicVal, userI
         collaborative=(len(communityList) != 0),
         description="",
     )
-    sp.user_playlist_add_tracks(userInfo, val["id"], songsForRec, position=None)
-    for member in communityList:
-        priv = sp.user_playlist_create(
-            member, name, public=publicVal, collaborative=False, description=""
-        )
-        sp.user_playlist_add_tracks(member, priv["id"], songsForRec, position=None)
+    sp.user_playlist_add_tracks(
+        userInfo, val["id"], shuffle(songsForRec), position=None
+    )
+    # for member in communityList:
+    priv = sp.user_playlist_create(
+        userInfo, name, public=publicVal, collaborative=False, description=""
+    )
+    sp.user_playlist_add_tracks(
+        userInfo, priv["id"], shuffle(songsForRec), position=None
+    )
     return val["external_urls"]["spotify"], val["id"]
 
 
 def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
 
-    # have to figure out what happens if you have less than 3 friends, or maybe less than 7 users in table, also need to do all the error checking if user types bad inputs
     name = input("Enter a name for this community playlist: ")
-
-    satisfy = 2
-    friends = get_friends(userInfo)
+    megaList = db.get_users_except_friends_and_you(userInfo, db.get_friends(userInfo))
+    friends = db.get_friends(userInfo)
+    all_users = megaList + friends
     if len(friends) == 0 and len(megaList) == 0:
         print(
             "Unable to create group playlist..., listen to more songs or wait for more users to join the application!"
         )
         return
+    print(
+        "Alright! Let's find some interesting users curated for you to collaborate with!"
+    )
+    collaborators = []
+    # display 7 randoms (3 similar, 4 different) and 3 friends (or 3 more similar)
+    music_similarity(userInfo, megaList, 0)
+    music_similarity(userInfo, friends, len(megaList))
+    selected_users = input(
+        "Select all the users you want on this playlist (indice(s) with spaces): "
+    )
+    selected_users = selected_users.split()
+    for selected in selected_users:
+        if len(selected) < 0 or len(selected) > len(all_users):
+            print("Please enter valid indices: ")
+        else:
+            collaborators.append(all_users[int(selected) - 1])
 
-    selected_friends = []
-    if len(friends) == 0:
-        print(
-            "Select your friends. Wait..., your friends list is empty! Moving onto other users..."
-        )
-    else:
-        user_ids = input(
-            "Select 1 or 2 of your friends to base this playlist on (indice(s) with spaces): "
-        )
-        user_ids = user_ids.split()
-        while len(user_ids) > 2 or len(user_ids) < 1:
-            user_ids = input("Please choose a valid set of indice(s): ")
-            user_ids = user_ids.split()
-            try:
-                user_ids = [int(i) for i in user_ids]
-            except ValueError:
-                user_ids = []
-            for i in user_ids:
-                if i > len(friends) or i < 1:
-                    print("Some indice is out of bounds...")
-                    break
-        for i in user_ids:
-            selected_friends.append(friends[i - 1])
-        satisfy -= len(selected_friends)
-
-    selected_random = []
-    if len(megaList) < satisfy:
-        print("There are not enough users that are similar to you...")
-    else:
-        count = 1
-        count = printNames(top99, 99, count)
-        count = printNames(top90, 90, count)
-        count = printNames(top75, 75, count)
-        count = printNames(top50, 50, count)
-
-        random_ids = input(
-            f"Select {satisfy} random users to base this playlist on (indices with spaces): "
-        )
-        random_ids = random_ids.split()
-
-        while len(random_ids) != satisfy:
-            random_ids = input(f"Please choose {satisfy} valid indices: ")
-            random_ids = random_ids.split()
-            try:
-                random_ids = [int(i) for i in random_ids]
-            except ValueError:
-                random_ids = []
-            for i in random_ids:
-                if i > len(megaList) or i < 1:
-                    print("Some indice is out of bounds...")
-                    break
-
-        random_ids = [int(i) for i in random_ids]
-        for i in random_ids:
-            selected_random.append(megaList[i - 1])
-
-    communityList = selected_friends + selected_random
     communityArtists = []
     communityTracks = []
 
     # add values of those selected
-    amount = math.floor(20 / (len(communityList) + 1))
-    for person in communityList:
+    amount = math.floor(20 / (len(collaborators) + 1))
+    for person in collaborators:
         top4Artists = db.get_user_top_artists(person)[:amount]
         top4Tracks = db.get_user_top_tracks(person)[:amount]
         communityArtists += top4Artists
@@ -405,21 +377,29 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     recSongs = generate_recs(communityArtists, communityTracks)
 
     playlistLink, playlistId = createAndPopulatePlayList(
-        communityList, name, recSongs, is_public, userInfo
+        collaborators, name, recSongs, is_public, userInfo
     )
 
-    become_friends = input(
-        'Do you want to become friends with randoms on this list? (Enter "yes" or "no"): '
-    )
-    if "yes" in become_friends:
-        become_friends = True
-    else:
-        become_friends = False
+    if is_public:
+        become_friends = input(
+            'Do you want to become friends with everybody on this list, if you are not already? (Enter "yes" or "no"): '
+        )
+        if "yes" in become_friends:
+            become_friends = True
+        else:
+            become_friends = False
 
-    if become_friends:
-        db.insert_friends(selected_random)  # update it so selected_random is a tuple
+        if become_friends:
+            tupleVer = []
+            for friend in collaborators:
+                if friend not in db.get_friends(userInfo):
+                    tupleVer.append((userInfo, friend))
+            db.insert_friends(tupleVer)
 
     listFriends = db.get_friends(userInfo)
+
+    for track in recSongs:
+        db.insert_song(track, "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
     db.insert_community_playlist(
         name, playlistId, recSongs, userInfo, listFriends, playlistLink, is_public
     )
