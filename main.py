@@ -3,6 +3,7 @@ from spotipy.oauth2 import SpotifyOAuth
 import os
 import time
 from sql import group_recommendations_db
+import numpy
 import math
 import random
 
@@ -25,7 +26,14 @@ db = group_recommendations_db()
 
 def main():
     print(
-        "Welcome to SpotiStat, an application used to connect your music taste with others around the globe!"
+        "				     WELCOME TO \n"
+        " ░██████╗██████╗░░█████╗░████████╗██╗███████╗██████╗░██╗███████╗███╗░░██╗██████╗░░██████╗ \n"
+        " ██╔════╝██╔══██╗██╔══██╗╚══██╔══╝██║██╔════╝██╔══██╗██║██╔════╝████╗░██║██╔══██╗██╔════╝ \n"
+        " ╚█████╗░██████╔╝██║░░██║░░░██║░░░██║█████╗░░██████╔╝██║█████╗░░██╔██╗██║██║░░██║╚█████╗░ \n"
+        " ░╚═══██╗██╔═══╝░██║░░██║░░░██║░░░██║██╔══╝░░██╔══██╗██║██╔══╝░░██║╚████║██║░░██║░╚═══██╗ \n"
+        " ██████╔╝██║░░░░░╚█████╔╝░░░██║░░░██║██║░░░░░██║░░██║██║███████╗██║░╚███║██████╔╝██████╔╝ \n"
+        " ╚═════╝░╚═╝░░░░░░╚════╝░░░░╚═╝░░░╚═╝╚═╝░░░░░╚═╝░░╚═╝╚═╝╚══════╝╚═╝░░╚══╝╚═════╝░╚═════╝░ \n \n"
+        "Welcome to SPOTIFRIENDS, an application used to connect your music taste with others around the globe!"
     )
 
     print("Requesting login info now if not stored, come back to program when done...")
@@ -92,10 +100,7 @@ def main():
                 "    -cgp, --createGroupPlaylist   generates a playlist for you around users, public or private"
             )
             print(
-                "    -gcp, --getCommunityPlaylist  gets the usernames of people in your community and the songs in the respective playlist"
-            )
-            print(
-                "    -gyc, --getYourCommunities    gets the names of all your communities"
+                "    -gyp, --getYourPlaylists      gets all of your own and group playlists"
             )
             print(
                 "    -dp, --deletePlaylist         deletes a playlist for you, not only from application, but spotify"
@@ -118,10 +123,10 @@ def main():
             )
         elif command == "-cgp" or command == "--createGroupPlaylist":
             create_group_playlist(topValues, userInfo, topArtistsList, topTracksList)
-        elif command == "-gcp" or command == "--getCommunityPlaylist":
+        elif command == "-gyp" or command == "--getYourPlaylists":
             get_community_playlist(userInfo)
-        elif command == "-gyc" or command == "--getYourCommunities":
-            get_your_communities(userInfo)
+        # elif command == "-gyc" or command == "--getYourCommunities":
+        #     get_your_communities(userInfo)
         elif command == "-dp" or command == "--deletePlaylist":
             delete_playlist(userInfo)
         elif command == "-lo" or command == "--logout":
@@ -175,6 +180,7 @@ def analyzeVals(topTracksList):
         "energy": 0,
         "instrumentalness": 0,
         "liveness": 0,
+        "popularity": 0,
         "speechiness": 0,
         "valence": 0,
         "tempo": 0,
@@ -194,11 +200,10 @@ def analyzeVals(topTracksList):
 
     for key in audioDict.keys():
         audioDict[key] /= len(topTracksList)
-    # print(audioDict)
     return audioDict
 
 
-def get_friends(userInfo):
+def get_friends(userInfo):  # TODO: should we give info about friends?
     friends = db.get_friends(userInfo)
     if len(friends) == 0:
         print("You have no friends!")
@@ -220,6 +225,46 @@ def findFriends(topValues, userInfo):
     return
 
 
+def group_data_points(users):
+    acou = []
+    danc = []
+    ener = []
+    inst = []
+    live = []
+    spee = []
+    vale = []
+    temp = []
+    for user in users:
+        userVals = analyzeVals(db.get_user_top_tracks(user))
+        acou.append(userVals["acousticness"])
+        danc.append(userVals["danceability"])
+        ener.append(userVals["energy"])
+        inst.append(userVals["instrumentalness"])
+        live.append(userVals["liveness"])
+        spee.append(userVals["speechiness"])
+        vale.append(userVals["valence"])
+        temp.append(userVals["tempo"])
+    stdValsDict = {
+        "avAc": numpy.mean(acou),
+        "stAc": numpy.std(acou),
+        "avDa": numpy.mean(danc),
+        "stDa": numpy.std(danc),
+        "avEn": numpy.mean(ener),
+        "stEn": numpy.std(ener),
+        "avIn": numpy.mean(inst),
+        "stIn": numpy.std(inst),
+        "avLi": numpy.mean(live),
+        "stLi": numpy.std(live),
+        "avSp": numpy.mean(spee),
+        "stSp": numpy.std(spee),
+        "avVa": numpy.mean(vale),
+        "stVa": numpy.std(vale),
+        "avTe": numpy.mean(temp),
+        "stTe": numpy.std(temp),
+    }
+    return stdValsDict
+
+
 def music_similarity(primaryUser, usersComparing, startingIdx):
     primaryUserVals = analyzeVals(db.get_user_top_tracks(primaryUser))
     idx = startingIdx
@@ -234,93 +279,123 @@ def music_similarity(primaryUser, usersComparing, startingIdx):
         +pow(userAverage["energy"] - primaryUserVals["energy"], 2)
         +pow(userAverage["instrumentalness"] - primaryUserVals["instrumentalness"], 2)
         +pow(userAverage["liveness"] - primaryUserVals["liveness"], 2)
+        +pow(userAverage["popularity"] - primaryUserVals["popularity"], 2)
         +pow(userAverage["speechiness"] - primaryUserVals["speechiness"], 2)
         +pow(userAverage["valence"] - primaryUserVals["valence"], 2)
         +pow((userAverage["tempo"] - primaryUserVals["tempo"]) / 1000, 2)
-        print(
-            f"{idx}           {name}        {(1-score)*100}%       {topartist['name']}       {toptrack['name']}"
-        )
+        scorePercent = round((1 - score) * 100, 2)
+
+        if user in db.get_friends(primaryUser):
+            print(
+                f"{idx}           {name} [friend]        {scorePercent}%       {topartist['name']}       {toptrack['name']}"
+            )
+        else:
+            print(
+                f"{idx}           {name}                  {scorePercent}%       {topartist['name']}       {toptrack['name']}"
+            )
     return
 
 
-def get_your_communities(userInfo):
+def get_community_playlist(
+    userInfo,
+):  # TODO: should listing include other collaborators?
     playlists = db.get_your_playlists(userInfo)
     print("The playlists you are a part of include: ")
     for idx, playlist in enumerate(playlists):
         print(f"{idx + 1}. {playlist}")
-    return
-
-
-def get_community_playlist(userInfo):
-    playlist_name = input("What community playlist do you want to search for?: ")
-    playlist_users = db.users_in_playlist(
-        playlist_name
-    )  # also retrieve the link for the playlist if any if user is in private, or any if public
-    isPublic = db.is_public_list(playlist_name)
-    if userInfo in playlist_users:
-        link = db.getPlaylistLink(playlist_name)
-        print(f"The link for '{playlist_name}' is {link} with users: ")
-        for user in playlist_users:
-            print(user)
-    elif isPublic:
-        link = db.getPlaylistLink(playlist_name)
-        print(f"The link for '{playlist_name}' is {link} with users: ")
-        for user in playlist_users:
-            print(user)
-    elif not isPublic:
-        print("Sorry, the playlist is private")
-    else:
-        print("Invalid community name.")
-
-    return
 
 
 def create_own_playlist(userInfo, topArtistsList, topTracksList):
-    songsForRec = generate_recs(topArtistsList, topTracksList)
+    songsForRec = generate_recs(topArtistsList, topTracksList, [], 0)
 
     name = input("Enter a name for this playlist: ")
 
-    createAndPopulatePlayList([], name, songsForRec, True, userInfo)
+    playlistLink, playlistId = createAndPopulatePlayList(
+        [], name, songsForRec, False, userInfo, False
+    )
+
+    for track in songsForRec:
+        db.insert_song(track, "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    db.insert_community_playlist(
+        name, playlistId, songsForRec, userInfo, [], playlistLink, False
+    )
 
     return name
 
 
-def generate_recs(topArtistsList, topTracksList):
+def generate_recs(topArtistsList, topTracksList, collaborators, variance):
     listTracks = []
     print("Generating recommendations...")
     length = len(topTracksList)
     indexer = math.floor(length / 10)
-    for i in range(indexer, length + 1, indexer):
-        listTracks.append(
-            sp.recommendations(
-                seed_tracks=topTracksList[i - indexer : i],
-                seed_artists=topArtistsList[i - indexer : i],
-                limit=3,
+    if len(collaborators) == 0:
+        for i in range(indexer, length + 1, indexer):
+            listTracks.append(
+                sp.recommendations(
+                    seed_tracks=topTracksList[i - indexer : i],
+                    seed_artists=topArtistsList[i - indexer : i],
+                    limit=3,
+                )
             )
-        )  # add more info for recommendations, min and max values
+    else:
+        bounds = group_data_points(collaborators)
+        for i in range(indexer, length + 1, indexer):
+            listTracks.append(
+                sp.recommendations(
+                    seed_tracks=topTracksList[i - indexer : i],
+                    seed_artists=topArtistsList[i - indexer : i],
+                    limit=3,
+                    min_acousticness=bounds["avAc"] - (int(variance) * bounds["stAc"]),
+                    max_acousticness=bounds["avAc"] + (int(variance) * bounds["stAc"]),
+                    target_acousticness=bounds["avAc"],
+                    min_danceability=bounds["avDa"] - (int(variance) * bounds["stDa"]),
+                    max_danceability=bounds["avDa"] + (int(variance) * bounds["stDa"]),
+                    target_danceability=bounds["avDa"],
+                    min_energy=bounds["avEn"] - (int(variance) * bounds["stEn"]),
+                    max_energy=bounds["avEn"] + (int(variance) * bounds["stEn"]),
+                    target_energy=bounds["avEn"],
+                    min_instrumentalness=bounds["avIn"]
+                    - (int(variance) * bounds["stIn"]),
+                    max_instrumentalness=bounds["avIn"]
+                    + (int(variance) * bounds["stIn"]),
+                    target_instrumentalness=bounds["avIn"],
+                    min_liveness=bounds["avLi"] - (int(variance) * bounds["stLi"]),
+                    max_liveness=bounds["avLi"] + (int(variance) * bounds["stLi"]),
+                    target_liveness=bounds["avLi"],
+                    min_speechiness=bounds["avSp"] - (int(variance) * bounds["stSp"]),
+                    max_speechiness=bounds["avSp"] + (int(variance) * bounds["stSp"]),
+                    target_speechiness=bounds["avSp"],
+                    min_valence=bounds["avVa"] - (int(variance) * bounds["stVa"]),
+                    max_valence=bounds["avVa"] + (int(variance) * bounds["stVa"]),
+                    target_valence=bounds["avVa"],
+                    min_tempo=bounds["avTe"] - (int(variance) * bounds["stTe"]),
+                    max_tempo=bounds["avTe"] + (int(variance) * bounds["stTe"]),
+                    target_tempo=bounds["avTe"],
+                )
+            )
     songsForRec = list(set(extractIDFromTracks(listTracks)))
     return songsForRec
 
 
-def createAndPopulatePlayList(communityList, name, songsForRec, publicVal, userInfo):
-    val = sp.user_playlist_create(
-        userInfo,
-        name,
-        public=(len(communityList) == 0),
-        collaborative=(len(communityList) != 0),
-        description="",
-    )
-    sp.user_playlist_add_tracks(
-        userInfo, val["id"], shuffle(songsForRec), position=None
-    )
-    # for member in communityList:
-    priv = sp.user_playlist_create(
-        userInfo, name, public=publicVal, collaborative=False, description=""
-    )
-    sp.user_playlist_add_tracks(
-        userInfo, priv["id"], shuffle(songsForRec), position=None
-    )
-    return val["external_urls"]["spotify"], val["id"]
+def createAndPopulatePlayList(
+    communityList, name, songsForRec, publicVal, userInfo, collaborative
+):
+    if not collaborative:
+        val = sp.user_playlist_create(
+            userInfo,
+            name,
+            public=(len(communityList) == 0),
+            collaborative=(len(communityList) != 0),
+            description="",
+        )
+        sp.user_playlist_add_tracks(userInfo, val["id"], songsForRec, position=None)
+        return val["external_urls"]["spotify"], val["id"]
+    else:
+        priv = sp.user_playlist_create(
+            userInfo, name, public=publicVal, collaborative=False, description=""
+        )
+        sp.user_playlist_add_tracks(userInfo, priv["id"], songsForRec, position=None)
+        return priv["external_urls"]["spotify"], priv["id"]
 
 
 def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
@@ -353,6 +428,9 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
 
     communityArtists = []
     communityTracks = []
+    variance = input(
+        "How much variance do you want between you and the other collaborators? Pick a value between 0 and 2: "
+    )
 
     # add values of those selected
     amount = math.floor(20 / (len(collaborators) + 1))
@@ -374,10 +452,10 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     else:
         is_public = False
 
-    recSongs = generate_recs(communityArtists, communityTracks)
+    recSongs = generate_recs(communityArtists, communityTracks, collaborators, variance)
 
     playlistLink, playlistId = createAndPopulatePlayList(
-        collaborators, name, recSongs, is_public, userInfo
+        collaborators, name, recSongs, is_public, userInfo, True
     )
 
     if is_public:
@@ -408,14 +486,6 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     )
 
 
-def printNames(listType, percent, count):
-    print(f"Users that have a {percent}% music similarity with you:")
-    for i in listType:
-        print(f"{count}. {i}")
-        count += 1
-    return count
-
-
 def delete_playlist(userInfo):
     playlist_name = input("What playlist do you want to delete?: ")
 
@@ -427,7 +497,9 @@ def delete_playlist(userInfo):
             playlists = db.get_your_playlists(playlist_name)
 
             if playlist_name in playlists:
-                db.delete_playlist(userInfo, playlist_name)
+                db.delete_playlist(
+                    userInfo, playlist_name
+                )  # TODO: not deleting playlists on db side
             return
 
     print(f"Playlist '{playlist_name}' can not be found...")

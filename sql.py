@@ -322,8 +322,9 @@ class group_recommendations_db:
             query = (
                 """
             select u.spotify_id
-            from user u where u.spotify_id not in ( \"
+            from user u where u.spotify_id not in
             """
+                + '( "'
                 + user_id
                 + '", '
                 + ", ".join(f'"{friend}"' for friend in friends_list)
