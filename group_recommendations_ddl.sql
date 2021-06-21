@@ -11,19 +11,20 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 -- Schema mydb
 -- -----------------------------------------------------
 -- -----------------------------------------------------
--- Schema group_recommendations
+-- Schema okuegiqutb19vini
 -- -----------------------------------------------------
 
 -- -----------------------------------------------------
--- Schema group_recommendations
+-- Schema okuegiqutb19vini
 -- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `group_recommendations` DEFAULT CHARACTER SET utf8 ;
-USE `group_recommendations` ;
+drop schema if exists `okuegiqutb19vini`;
+CREATE SCHEMA IF NOT EXISTS `okuegiqutb19vini` DEFAULT CHARACTER SET utf8 ;
+USE `okuegiqutb19vini` ;
 
 -- -----------------------------------------------------
--- Table `group_recommendations`.`artist`
+-- Table `okuegiqutb19vini`.`artist`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `group_recommendations`.`artist` (
+CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`artist` (
   `spotify_id` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`spotify_id`))
 ENGINE = InnoDB
@@ -31,9 +32,9 @@ DEFAULT CHARACTER SET = utf8mb3;
 
 
 -- -----------------------------------------------------
--- Table `group_recommendations`.`user`
+-- Table `okuegiqutb19vini`.`user`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `group_recommendations`.`user` (
+CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`user` (
   `spotify_id` VARCHAR(45) NOT NULL,
   UNIQUE INDEX `spotify_id_UNIQUE` (`spotify_id` ASC) VISIBLE,
   PRIMARY KEY (`spotify_id`))
@@ -42,21 +43,21 @@ DEFAULT CHARACTER SET = utf8mb3;
 
 
 -- -----------------------------------------------------
--- Table `group_recommendations`.`friends`
+-- Table `okuegiqutb19vini`.`friends`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `group_recommendations`.`friends` (
+CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`friends` (
   `user_spotify_id1` VARCHAR(45) NOT NULL,
   `user_spotify_id2` VARCHAR(45) NOT NULL,
   INDEX `fk_friends_user1_idx` (`user_spotify_id1` ASC) VISIBLE,
   INDEX `fk_friends_user2_idx` (`user_spotify_id2` ASC) VISIBLE,
   CONSTRAINT `fk_friends_user1`
     FOREIGN KEY (`user_spotify_id1`)
-    REFERENCES `group_recommendations`.`user` (`spotify_id`)
+    REFERENCES `okuegiqutb19vini`.`user` (`spotify_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_friends_user2`
     FOREIGN KEY (`user_spotify_id2`)
-    REFERENCES `group_recommendations`.`user` (`spotify_id`)
+    REFERENCES `okuegiqutb19vini`.`user` (`spotify_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
@@ -64,9 +65,9 @@ DEFAULT CHARACTER SET = utf8mb3;
 
 
 -- -----------------------------------------------------
--- Table `group_recommendations`.`playlist`
+-- Table `okuegiqutb19vini`.`playlist`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `group_recommendations`.`playlist` (
+CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`playlist` (
   `spotify_id` VARCHAR(45) NOT NULL,
   `name` VARCHAR(45) NOT NULL,
   `link` VARCHAR(200) NOT NULL,
@@ -77,46 +78,31 @@ DEFAULT CHARACTER SET = utf8mb3;
 
 
 -- -----------------------------------------------------
--- Table `group_recommendations`.`song`
+-- Table `okuegiqutb19vini`.`song`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `group_recommendations`.`song` (
+CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`song` (
   `spotify_id` VARCHAR(45) NOT NULL,
-  `name` VARCHAR(45) NOT NULL,
-  `accousticness` FLOAT NOT NULL,
-  `danceability` FLOAT NOT NULL,
-  `duration` INT NOT NULL,
-  `energy` FLOAT NOT NULL,
-  `instrumentalness` FLOAT NOT NULL,
-  `key` INT NOT NULL,
-  `liveness` FLOAT NOT NULL,
-  `loudness` FLOAT NOT NULL,
-  `mode` INT NOT NULL,
-  `popularity` INT NOT NULL,
-  `speechiness` FLOAT NOT NULL,
-  `tempo` FLOAT NOT NULL,
-  `time_signature` FLOAT NOT NULL,
-  `valence` FLOAT NOT NULL,
   PRIMARY KEY (`spotify_id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb3;
 
 
 -- -----------------------------------------------------
--- Table `group_recommendations`.`playlist_has_song`
+-- Table `okuegiqutb19vini`.`playlist_has_song`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `group_recommendations`.`playlist_has_song` (
+CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`playlist_has_song` (
   `playlist_spotify_id` VARCHAR(45) NOT NULL,
   `song_spotify_id` VARCHAR(45) NOT NULL,
   INDEX `fk_playlist_has_song_playlist1_idx` (`playlist_spotify_id` ASC) VISIBLE,
   INDEX `fk_playlist_has_song_song1_idx` (`song_spotify_id` ASC) VISIBLE,
   CONSTRAINT `fk_playlist_has_song_playlist1`
     FOREIGN KEY (`playlist_spotify_id`)
-    REFERENCES `group_recommendations`.`playlist` (`spotify_id`)
+    REFERENCES `okuegiqutb19vini`.`playlist` (`spotify_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_playlist_has_song_song1`
     FOREIGN KEY (`song_spotify_id`)
-    REFERENCES `group_recommendations`.`song` (`spotify_id`)
+    REFERENCES `okuegiqutb19vini`.`song` (`spotify_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
@@ -124,9 +110,9 @@ DEFAULT CHARACTER SET = utf8mb3;
 
 
 -- -----------------------------------------------------
--- Table `group_recommendations`.`top_artist`
+-- Table `okuegiqutb19vini`.`top_artist`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `group_recommendations`.`top_artist` (
+CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`top_artist` (
   `user_spotify_id` VARCHAR(45) NOT NULL,
   `artist_spotify_id` VARCHAR(45) NOT NULL,
   `rank` INT NOT NULL,
@@ -134,12 +120,12 @@ CREATE TABLE IF NOT EXISTS `group_recommendations`.`top_artist` (
   INDEX `fk_top_artist_artist1_idx` (`artist_spotify_id` ASC) VISIBLE,
   CONSTRAINT `fk_top_artist_user1`
     FOREIGN KEY (`user_spotify_id`)
-    REFERENCES `group_recommendations`.`user` (`spotify_id`)
+    REFERENCES `okuegiqutb19vini`.`user` (`spotify_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_top_artist_artist1`
     FOREIGN KEY (`artist_spotify_id`)
-    REFERENCES `group_recommendations`.`artist` (`spotify_id`)
+    REFERENCES `okuegiqutb19vini`.`artist` (`spotify_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
@@ -147,9 +133,9 @@ DEFAULT CHARACTER SET = utf8mb3;
 
 
 -- -----------------------------------------------------
--- Table `group_recommendations`.`top_track`
+-- Table `okuegiqutb19vini`.`top_track`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `group_recommendations`.`top_track` (
+CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`top_track` (
   `rank` INT NOT NULL,
   `user_spotify_id` VARCHAR(45) NOT NULL,
   `song_spotify_id` VARCHAR(45) NOT NULL,
@@ -157,12 +143,12 @@ CREATE TABLE IF NOT EXISTS `group_recommendations`.`top_track` (
   INDEX `fk_top_track_song1_idx` (`song_spotify_id` ASC) VISIBLE,
   CONSTRAINT `fk_top_track_user1`
     FOREIGN KEY (`user_spotify_id`)
-    REFERENCES `group_recommendations`.`user` (`spotify_id`)
+    REFERENCES `okuegiqutb19vini`.`user` (`spotify_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_top_track_song1`
     FOREIGN KEY (`song_spotify_id`)
-    REFERENCES `group_recommendations`.`song` (`spotify_id`)
+    REFERENCES `okuegiqutb19vini`.`song` (`spotify_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
@@ -170,21 +156,21 @@ DEFAULT CHARACTER SET = utf8mb3;
 
 
 -- -----------------------------------------------------
--- Table `group_recommendations`.`user_has_playlist`
+-- Table `okuegiqutb19vini`.`user_has_playlist`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `group_recommendations`.`user_has_playlist` (
+CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`user_has_playlist` (
   `user_spotify_id` VARCHAR(45) NOT NULL,
   `playlist_spotify_id` VARCHAR(45) NOT NULL,
   INDEX `fk_user_has_playlist_user1_idx` (`user_spotify_id` ASC) VISIBLE,
   INDEX `fk_user_has_playlist_playlist1_idx` (`playlist_spotify_id` ASC) VISIBLE,
   CONSTRAINT `fk_user_has_playlist_user1`
     FOREIGN KEY (`user_spotify_id`)
-    REFERENCES `group_recommendations`.`user` (`spotify_id`)
+    REFERENCES `okuegiqutb19vini`.`user` (`spotify_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_user_has_playlist_playlist1`
     FOREIGN KEY (`playlist_spotify_id`)
-    REFERENCES `group_recommendations`.`playlist` (`spotify_id`)
+    REFERENCES `okuegiqutb19vini`.`playlist` (`spotify_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
