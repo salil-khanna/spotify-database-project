@@ -24,74 +24,6 @@ class group_recommendations_db:
             else:
                 print(err)
 
-    def query_gets_attrs(self, query, query_args):
-        """
-        Helper method that executes a query. Hardcodes column values, so should only be used if the
-        resulting SQL table has the column names of the Spotify song attributes and the table
-        only has one row lol
-
-        Args:
-            query (string)
-            query_args (tuple): arguments to format the SQL query properly
-
-        Returns:
-            avg_attrs (dictionary): dictionary where key is the song attribute and value is from the query
-                                    dictionary values populated with 0 if query returns nothing.
-        """
-        self.cursor.execute(query, query_args)
-
-        avg_attrs = {
-            "accousticness": 0,
-            "danceability": 0,
-            "duration": 0,
-            "energy": 0,
-            "instrumentalness": 0,
-            "key": 0,
-            "loudness": 0,
-            "mode": 0,
-            "popularity": 0,
-            "speechiness": 0,
-            "tempo": 0,
-            "time_signature": 0,
-            "valence": 0,
-        }
-
-        for (
-            accousticness,
-            danceability,
-            duration,
-            energy,
-            instrumentalness,
-            key,
-            loudness,
-            mode,
-            popularity,
-            speechiness,
-            tempo,
-            time_signature,
-            valence,
-        ) in self.cursor:
-
-            if accousticness is None:
-                # no songs were returned in this query -- no idea why it returns a NoneType row instead
-                # of just an empty table
-                return avg_attrs
-
-            avg_attrs["accousticness"] = float(accousticness)
-            avg_attrs["danceability"] = float(danceability)
-            avg_attrs["duration"] = float(duration)
-            avg_attrs["energy"] = float(energy)
-            avg_attrs["instrumentalness"] = float(instrumentalness)
-            avg_attrs["key"] = float(key)
-            avg_attrs["loudness"] = float(loudness)
-            avg_attrs["mode"] = float(mode)
-            avg_attrs["popularity"] = float(popularity)
-            avg_attrs["speechiness"] = float(speechiness)
-            avg_attrs["tempo"] = float(tempo)
-            avg_attrs["time_signature"] = float(time_signature)
-            avg_attrs["valence"] = float(valence)
-        return avg_attrs
-
     def get_user_top_tracks(self, s_user_id):
         """
         Retrieves a given user's top tracks.
@@ -116,85 +48,6 @@ class group_recommendations_db:
         for (spotify_id,) in self.cursor:
             songs.append(spotify_id)
         return songs
-
-    def get_user_song_attr(self, s_user_id):
-        """
-        Retrieves a given user's average track attributes in the form of a dictionary.
-
-        Args:
-            s_user_id (int): a user's spotify id
-
-        Returns:
-            avg_attrs (dictionary): dictionary where key is the song attribute and value is the user's average
-                                    returns dictionary where values are 0 if user doesn't exist.
-        """
-
-        query = """
-        select avg(s.accousticness) accousticness,
-            avg(s.danceability) danceability,
-            avg(s.duration) duration,
-            avg(s.energy) energy,
-            avg(s.instrumentalness) instrumentalness,
-            avg(s.key) `key`,
-            avg(s.loudness) loudness,
-            avg(s.mode) `mode`,
-            avg(s.popularity) popularity,
-            avg(s.speechiness) speechiness,
-            avg(s.tempo) tempo,
-            avg(s.time_signature) time_signature,
-            avg(s.valence) valence
-        from top_track t join song s on (t.song_spotify_id = s.spotify_id)
-        where t.user_spotify_id = %s ;
-        """
-        return self.query_gets_attrs(query, (s_user_id,))
-
-    def playlist_users_avg(self, playlist_id):
-        """
-        Returns the song attribute averages of all the users in a playlist.
-
-        Args:
-            playlist_id (int)
-
-        Returns:
-            avg_attrs (dictionary): dictionary where key is the song attribute and value is the user's average
-                                    returns dictionary populated with 0's if playlist doesn't exist.
-        """
-
-        query = """
-        select avg(pu.accousticness) accousticness, 
-            avg(pu.danceability) danceability,
-            avg(pu.duration) duration,
-            avg(pu.energy) energy,
-            avg(pu.instrumentalness) instrumentalness,
-            avg(pu.key) `key`,
-            avg(pu.loudness) loudness,
-            avg(pu.mode) `mode`,
-            avg(pu.popularity) popularity,
-            avg(pu.speechiness) speechiness,
-            avg(pu.tempo) tempo,
-            avg(pu.time_signature) time_signature,
-            avg(pu.valence) valence
-        from 
-            (select t.user_spotify_id,
-                avg(s.accousticness) accousticness,
-                avg(s.danceability) danceability,
-                avg(s.duration) duration,
-                avg(s.energy) energy,
-                avg(s.instrumentalness) instrumentalness,
-                avg(s.key) `key`,
-                avg(s.loudness) loudness,
-                avg(s.mode) `mode`,
-                avg(s.popularity) popularity,
-                avg(s.speechiness) speechiness,
-                avg(s.tempo) tempo,
-                avg(s.time_signature) time_signature,
-                avg(s.valence) valence
-            from user_has_playlist up join top_track t using (user_spotify_id)
-            join song s on (s.spotify_id = t.song_spotify_id)
-            where up.playlist_spotify_id = %s
-            group by t.user_spotify_id) as pu;
-        """
-        return self.query_gets_attrs(query, (playlist_id,))
 
     def users_in_playlist(self, playlist_id):
         """
@@ -362,12 +215,12 @@ class group_recommendations_db:
             songs.append(spotify_id)
         return songs
 
-    def getPlaylistLink(self, playlist_name):
+    def getPlaylistLink(self, playlist_id):
         """
         Retrieves the link of the specified playlist.
 
         Args:
-            playlist_name (string)
+            playlist_id (string)
 
         Returns:
             playlist_link (string)
@@ -376,10 +229,10 @@ class group_recommendations_db:
         query = """
         select p.link
         from playlist p
-        where p.name = %s;
+        where p.spotify_id = %s;
         """
 
-        self.cursor.execute(query, (playlist_name,))
+        self.cursor.execute(query, (playlist_id,))
 
         for (link,) in self.cursor:
             return link
@@ -411,11 +264,11 @@ class group_recommendations_db:
         Args:
             user_id (string): Spotify ID
         Returns:
-            playlists (list of strings): list of playlist names
+            playlists (list of strings): list of playlist ids
         """
 
         query = """
-        select p.name
+        select p.spotify_id
         from user_has_playlist up join playlist p on (up.playlist_spotify_id = p.spotify_id)
         where up.user_spotify_id = %s ;
         """
@@ -423,8 +276,8 @@ class group_recommendations_db:
 
         playlists = []
 
-        for (name,) in self.cursor:
-            playlists.append(name)
+        for (spotify_id,) in self.cursor:
+            playlists.append(spotify_id)
 
         return playlists
 
@@ -525,50 +378,13 @@ class group_recommendations_db:
 
     # insert_top_tracks(1, [(1,2)])
 
-    def insert_song(
-        self,
-        spotify_id,
-        name,
-        accousticness,
-        danceability,
-        duration,
-        energy,
-        instrumentalness,
-        key,
-        liveness,
-        loudness,
-        mode,
-        popularity,
-        speechiness,
-        tempo,
-        time_signature,
-        valence,
-    ):
+    def insert_song(self, spotify_id):
 
         if self.get_song(spotify_id):
             # song already exists
             return
 
-        sql = (
-            f"INSERT INTO song  VALUES ("
-            f'"{spotify_id}",'
-            f'"{name}",'
-            f"{accousticness},"
-            f"{danceability},"
-            f"{duration},"
-            f"{energy},"
-            f"{instrumentalness},"
-            f"{key},"
-            f"{liveness},"
-            f"{loudness},"
-            f"{mode},"
-            f"{popularity},"
-            f"{speechiness},"
-            f"{tempo},"
-            f"{time_signature},"
-            f"{valence}"
-            f")"
-        )
+        sql = f"INSERT INTO song  VALUES (" f'"{spotify_id}"' f")"
 
         self.insert(sql)
 

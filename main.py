@@ -61,7 +61,7 @@ def main():
     if not exists:
         db.insert_user(userInfo)
         for track in topTracksList:
-            db.insert_song(track, "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+            db.insert_song(track)
 
         for artist in topArtistsList:
             db.insert_artist(artist)
@@ -69,7 +69,7 @@ def main():
         db.insert_top_artists(userInfo, copyArtistList)
     else:
         for track in topTracksList:
-            db.insert_song(track, "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+            db.insert_song(track)
 
         for artist in topArtistsList:
             db.insert_artist(artist)
@@ -140,7 +140,7 @@ def main():
         else:
             print("Invalid command")
     print("Logging out now.....")
-    print("Thank you for using SpotiStat!")
+    print("Thank you for using SPOTIFRIENDS!")
 
 
 def topTracks():
@@ -296,13 +296,16 @@ def music_similarity(primaryUser, usersComparing, startingIdx):
     return
 
 
-def get_community_playlist(
-    userInfo,
-):  # TODO: should listing include other collaborators?
+def get_community_playlist(userInfo):
     playlists = db.get_your_playlists(userInfo)
     print("The playlists you are a part of include: ")
     for idx, playlist in enumerate(playlists):
-        print(f"{idx + 1}. {playlist}")
+        link = db.getPlaylistLink(playlist)
+        print(f"{idx + 1}. {sp.playlist(playlist)['name']}   CLICK HERE: {link}")
+        # playlist_users = db.users_in_playlist(playlist)
+        # for user in playlist_users:
+        #     print(user)
+    return playlists
 
 
 def create_own_playlist(userInfo, topArtistsList, topTracksList):
@@ -315,7 +318,7 @@ def create_own_playlist(userInfo, topArtistsList, topTracksList):
     )
 
     for track in songsForRec:
-        db.insert_song(track, "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        db.insert_song(track)
     db.insert_community_playlist(
         name, playlistId, songsForRec, userInfo, [], playlistLink, False
     )
@@ -324,6 +327,7 @@ def create_own_playlist(userInfo, topArtistsList, topTracksList):
 
 
 def generate_recs(topArtistsList, topTracksList, collaborators, variance):
+    variance = float(variance) + 2
     listTracks = []
     print("Generating recommendations...")
     length = len(topTracksList)
@@ -338,41 +342,58 @@ def generate_recs(topArtistsList, topTracksList, collaborators, variance):
                 )
             )
     else:
+
         bounds = group_data_points(collaborators)
+
         for i in range(indexer, length + 1, indexer):
             listTracks.append(
                 sp.recommendations(
                     seed_tracks=topTracksList[i - indexer : i],
                     seed_artists=topArtistsList[i - indexer : i],
-                    limit=3,
-                    min_acousticness=bounds["avAc"] - (int(variance) * bounds["stAc"]),
-                    max_acousticness=bounds["avAc"] + (int(variance) * bounds["stAc"]),
+                    limit=5,
+                    min_acousticness=max(
+                        0, bounds["avAc"] - (variance * bounds["stAc"])
+                    ),
+                    max_acousticness=min(
+                        1, bounds["avAc"] + (variance * bounds["stAc"])
+                    ),
                     target_acousticness=bounds["avAc"],
-                    min_danceability=bounds["avDa"] - (int(variance) * bounds["stDa"]),
-                    max_danceability=bounds["avDa"] + (int(variance) * bounds["stDa"]),
+                    min_danceability=max(
+                        0, bounds["avDa"] - (variance * bounds["stDa"])
+                    ),
+                    max_danceability=min(
+                        1, bounds["avDa"] + (variance * bounds["stDa"])
+                    ),
                     target_danceability=bounds["avDa"],
-                    min_energy=bounds["avEn"] - (int(variance) * bounds["stEn"]),
-                    max_energy=bounds["avEn"] + (int(variance) * bounds["stEn"]),
+                    min_energy=max(0, bounds["avEn"] - (variance * bounds["stEn"])),
+                    max_energy=min(1, bounds["avEn"] + (variance * bounds["stEn"])),
                     target_energy=bounds["avEn"],
-                    min_instrumentalness=bounds["avIn"]
-                    - (int(variance) * bounds["stIn"]),
-                    max_instrumentalness=bounds["avIn"]
-                    + (int(variance) * bounds["stIn"]),
+                    min_instrumentalness=max(
+                        0, bounds["avIn"] - (variance * bounds["stIn"])
+                    ),
+                    max_instrumentalness=min(
+                        1, bounds["avIn"] + (variance * bounds["stIn"])
+                    ),
                     target_instrumentalness=bounds["avIn"],
-                    min_liveness=bounds["avLi"] - (int(variance) * bounds["stLi"]),
-                    max_liveness=bounds["avLi"] + (int(variance) * bounds["stLi"]),
+                    min_liveness=max(0, bounds["avLi"] - (variance * bounds["stLi"])),
+                    max_liveness=min(1, bounds["avLi"] + (variance * bounds["stLi"])),
                     target_liveness=bounds["avLi"],
-                    min_speechiness=bounds["avSp"] - (int(variance) * bounds["stSp"]),
-                    max_speechiness=bounds["avSp"] + (int(variance) * bounds["stSp"]),
+                    min_speechiness=max(
+                        0, bounds["avSp"] - (variance * bounds["stSp"])
+                    ),
+                    max_speechiness=min(
+                        1, bounds["avSp"] + (variance * bounds["stSp"])
+                    ),
                     target_speechiness=bounds["avSp"],
-                    min_valence=bounds["avVa"] - (int(variance) * bounds["stVa"]),
-                    max_valence=bounds["avVa"] + (int(variance) * bounds["stVa"]),
+                    min_valence=max(0, bounds["avVa"] - (variance * bounds["stVa"])),
+                    max_valence=min(1, bounds["avVa"] + (variance * bounds["stVa"])),
                     target_valence=bounds["avVa"],
-                    min_tempo=bounds["avTe"] - (int(variance) * bounds["stTe"]),
-                    max_tempo=bounds["avTe"] + (int(variance) * bounds["stTe"]),
+                    min_tempo=bounds["avTe"] - (variance * bounds["stTe"]),
+                    max_tempo=bounds["avTe"] + (variance * bounds["stTe"]),
                     target_tempo=bounds["avTe"],
                 )
             )
+
     songsForRec = list(set(extractIDFromTracks(listTracks)))
     return songsForRec
 
@@ -380,22 +401,41 @@ def generate_recs(topArtistsList, topTracksList, collaborators, variance):
 def createAndPopulatePlayList(
     communityList, name, songsForRec, publicVal, userInfo, collaborative
 ):
-    if not collaborative:
-        val = sp.user_playlist_create(
-            userInfo,
-            name,
-            public=(len(communityList) == 0),
-            collaborative=(len(communityList) != 0),
-            description="",
-        )
-        sp.user_playlist_add_tracks(userInfo, val["id"], songsForRec, position=None)
-        return val["external_urls"]["spotify"], val["id"]
-    else:
-        priv = sp.user_playlist_create(
-            userInfo, name, public=publicVal, collaborative=False, description=""
-        )
-        sp.user_playlist_add_tracks(userInfo, priv["id"], songsForRec, position=None)
-        return priv["external_urls"]["spotify"], priv["id"]
+    # print(communityList)
+    # print(songsForRec)
+    # print(collaborative)
+    # print(userInfo)
+    val = sp.user_playlist_create(
+        userInfo,
+        name,
+        public=False,
+        collaborative=(len(communityList) != 0),
+        description="",
+    )
+    sp.user_playlist_add_tracks(userInfo, val["id"], songsForRec, position=None)
+    # for member in communityList:
+    #     priv = sp.user_playlist_create(
+    #         userInfo, name, public=publicVal, collaborative=False, description=""
+    #     )
+    #     sp.user_playlist_add_tracks(userInfo, priv["id"], songsForRec, position=None)
+    return val["external_urls"]["spotify"], val["id"]
+
+    # if not collaborative:
+    #     val = sp.user_playlist_create(
+    #         userInfo,
+    #         name,
+    #         public=False,
+    #         collaborative=False,
+    #         description="",
+    #     )
+    #     sp.user_playlist_add_tracks(userInfo, val["id"], songsForRec, position=None)
+    #     return val["external_urls"]["spotify"], val["id"]
+    # else:
+    #     priv = sp.user_playlist_create(
+    #         userInfo, name, public=False, collaborative=True, description=""
+    #     )
+    #     sp.user_playlist_add_tracks(userInfo, priv["id"], songsForRec, position=None)
+    #     return priv["external_urls"]["spotify"], priv["id"]
 
 
 def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
@@ -412,7 +452,7 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     print(
         "Alright! Let's find some interesting users curated for you to collaborate with!"
     )
-    collaborators = []
+    collaborators = [userInfo]
     # display 7 randoms (3 similar, 4 different) and 3 friends (or 3 more similar)
     music_similarity(userInfo, megaList, 0)
     music_similarity(userInfo, friends, len(megaList))
@@ -452,8 +492,9 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     else:
         is_public = False
 
+    random.shuffle(communityTracks)
+    random.shuffle(communityArtists)
     recSongs = generate_recs(communityArtists, communityTracks, collaborators, variance)
-
     playlistLink, playlistId = createAndPopulatePlayList(
         collaborators, name, recSongs, is_public, userInfo, True
     )
@@ -470,14 +511,14 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
         if become_friends:
             tupleVer = []
             for friend in collaborators:
-                if friend not in db.get_friends(userInfo):
+                if friend not in db.get_friends(userInfo) and friend != userInfo:
                     tupleVer.append((userInfo, friend))
             db.insert_friends(tupleVer)
 
     listFriends = db.get_friends(userInfo)
 
     for track in recSongs:
-        db.insert_song(track, "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        db.insert_song(track)
     db.insert_community_playlist(
         name, playlistId, recSongs, userInfo, listFriends, playlistLink, is_public
     )
@@ -487,22 +528,13 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
 
 
 def delete_playlist(userInfo):
-    playlist_name = input("What playlist do you want to delete?: ")
-
-    allPlaylists = sp.current_user_playlists(limit=50, offset=0)
-    for playList in allPlaylists["items"]:
-        if playlist_name == playList["name"]:
-            sp.user_playlist_unfollow(userInfo, playList["id"])
-            print(f"Playlist '{playlist_name}' has been deleted!")
-            playlists = db.get_your_playlists(playlist_name)
-
-            if playlist_name in playlists:
-                db.delete_playlist(
-                    userInfo, playlist_name
-                )  # TODO: not deleting playlists on db side
-            return
-
-    print(f"Playlist '{playlist_name}' can not be found...")
+    my_playlists = get_community_playlist(userInfo)
+    playlist_index = input("What playlist do you want to delete? Select by index: ")
+    playlist_to_delete = my_playlists[int(playlist_index) - 1]
+    print("Playlist has been deleted!")
+    sp.user_playlist_unfollow(userInfo, playlist_to_delete)
+    db.delete_playlist(playlist_to_delete)
+    return
 
 
 def logout():
