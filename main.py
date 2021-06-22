@@ -75,7 +75,7 @@ def main():
             db.insert_artist(artist)
         db.update_user_top_tracks(userInfo, copyTrackList)
         db.update_user_top_artists(userInfo, copyArtistList)
-
+    print("Type -gyp or --getYourPlaylists to see if you were added to any new Playlists while you were away!")
     print("Use -h or --help to see a list of valid commands...")
 
     while True:
