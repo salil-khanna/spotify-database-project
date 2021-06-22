@@ -1,5 +1,4 @@
-# SpotiFriends
-SpotiFriends: A Python & SQL Application To Make New Friends based on Spotify Music!
+# SpotiFriends: A Python & SQL Application To Make New Friends based on Spotify Music!
 
 Demo: https://www.youtube.com/watch?v=W_78sZwXPEI
 
