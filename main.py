@@ -75,7 +75,8 @@ def main():
             db.insert_artist(artist)
         db.update_user_top_tracks(userInfo, copyTrackList)
         db.update_user_top_artists(userInfo, copyArtistList)
-    print("Type -gyp or --getYourPlaylists to see if you were added to any new Playlists while you were away!")
+        print("Type -gyp or --getYourPlaylists to see if you were added to any new Playlists while you were away!")
+
     print("Use -h or --help to see a list of valid commands...")
 
     while True:
@@ -452,10 +453,14 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     print(
         "Alright! Let's find some interesting users curated for you to collaborate with!"
     )
+    print(
+        "index        name          similarity          top artist          top track"
+    )
     collaborators = [userInfo]
     # display 7 randoms (3 similar, 4 different) and 3 friends (or 3 more similar)
     music_similarity(userInfo, megaList, 0)
     music_similarity(userInfo, friends, len(megaList))
+
     selected_users = input(
         "Select all the users you want on this playlist (indice(s) with spaces): "
     )
@@ -484,6 +489,7 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     communityArtists += topArtistsList[:amount]
     communityTracks += topTracksList[:amount]
 
+    print("To become friends with the selected users for this playlist, you must choose to make it public.")
     is_public = input(
         'Is this a public or private playlist? (Enter "public" or "private"): '
     )
@@ -522,9 +528,14 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
     db.insert_community_playlist(
         name, playlistId, recSongs, userInfo, listFriends, playlistLink, is_public
     )
-    print(
-        f"Playlist has been created for all users in the community '{name}'! Visit here: {playlistLink}"
-    )
+    if is_public:
+        print(
+            f"Playlist has been created for all users in the community '{name}'! Visit here: {playlistLink}"
+        )
+    else:
+         print(
+            f"The playlist '{name}' has been created just for you! Visit here: {playlistLink}"
+        )
 
 
 def delete_playlist(userInfo):
