@@ -90,7 +90,7 @@ def main():
             print("Valid Command List:")
             print("    -h, --help                    shows this help message")
             print("    -q, --quit                    quits out of this application")
-            print("    -gf, --getFriends             gets your friends on SpotiStat")
+            print("    -gf, --getFriends             gets your friends on SpotiFriends")
             print(
                 "    -ff, --findFriends            find users of the application who have a similar music taste as you"
             )
@@ -218,7 +218,7 @@ def findFriends(topValues, userInfo):
 
     print("Check out these users!")
     print(
-        "index        name          similarity          top artist          top track"
+        "INDEX            NAME     SIMILARITY(%)       TOP ARTIST                     TOP TRACK"
     )
     users = db.get_users_except_friends_and_you(userInfo, db.get_friends(userInfo))
     music_similarity(userInfo, users, 0)
@@ -287,13 +287,13 @@ def music_similarity(primaryUser, usersComparing, startingIdx):
         scorePercent = round((1 - score) * 100, 2)
 
         if user in db.get_friends(primaryUser):
-            print(
-                f"{idx}           {name} [friend]        {scorePercent}%       {topartist['name']}       {toptrack['name']}"
-            )
+            friends = "(friends)"
+            display = "{0:<5}{1:>14}{2:>2}{3:>8}{4:>20}{5:>30}".format(idx,name,friends,scorePercent,topartist['name'],toptrack['name'])
+            print(display)
         else:
-            print(
-                f"{idx}           {name}                  {scorePercent}%       {topartist['name']}       {toptrack['name']}"
-            )
+
+            display = "{0:<5}{1:>16}{2:>15}{3:>20}{4:>30}".format(idx,name,scorePercent,topartist['name'],toptrack['name'])
+            print(display)
     return
 
 
@@ -303,9 +303,6 @@ def get_community_playlist(userInfo):
     for idx, playlist in enumerate(playlists):
         link = db.getPlaylistLink(playlist)
         print(f"{idx + 1}. {sp.playlist(playlist)['name']}   CLICK HERE: {link}")
-        # playlist_users = db.users_in_playlist(playlist)
-        # for user in playlist_users:
-        #     print(user)
     return playlists
 
 
@@ -402,10 +399,6 @@ def generate_recs(topArtistsList, topTracksList, collaborators, variance):
 def createAndPopulatePlayList(
     communityList, name, songsForRec, publicVal, userInfo, collaborative
 ):
-    # print(communityList)
-    # print(songsForRec)
-    # print(collaborative)
-    # print(userInfo)
     val = sp.user_playlist_create(
         userInfo,
         name,
@@ -414,29 +407,7 @@ def createAndPopulatePlayList(
         description="",
     )
     sp.user_playlist_add_tracks(userInfo, val["id"], songsForRec, position=None)
-    # for member in communityList:
-    #     priv = sp.user_playlist_create(
-    #         userInfo, name, public=publicVal, collaborative=False, description=""
-    #     )
-    #     sp.user_playlist_add_tracks(userInfo, priv["id"], songsForRec, position=None)
     return val["external_urls"]["spotify"], val["id"]
-
-    # if not collaborative:
-    #     val = sp.user_playlist_create(
-    #         userInfo,
-    #         name,
-    #         public=False,
-    #         collaborative=False,
-    #         description="",
-    #     )
-    #     sp.user_playlist_add_tracks(userInfo, val["id"], songsForRec, position=None)
-    #     return val["external_urls"]["spotify"], val["id"]
-    # else:
-    #     priv = sp.user_playlist_create(
-    #         userInfo, name, public=False, collaborative=True, description=""
-    #     )
-    #     sp.user_playlist_add_tracks(userInfo, priv["id"], songsForRec, position=None)
-    #     return priv["external_urls"]["spotify"], priv["id"]
 
 
 def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
@@ -454,7 +425,7 @@ def create_group_playlist(topValues, userInfo, topArtistsList, topTracksList):
         "Alright! Let's find some interesting users curated for you to collaborate with!"
     )
     print(
-        "index        name          similarity          top artist          top track"
+        "INDEX            NAME     SIMILARITY(%)       TOP ARTIST                     TOP TRACK"
     )
     collaborators = [userInfo]
     # display 7 randoms (3 similar, 4 different) and 3 friends (or 3 more similar)
