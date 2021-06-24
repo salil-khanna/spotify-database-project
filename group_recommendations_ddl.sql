@@ -26,7 +26,8 @@ USE `okuegiqutb19vini` ;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`artist` (
   `spotify_id` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`spotify_id`))
+  PRIMARY KEY (`spotify_id`),
+  UNIQUE INDEX `spotify_id_UNIQUE` (`spotify_id` ASC) VISIBLE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb3;
 
@@ -72,7 +73,9 @@ CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`playlist` (
   `name` VARCHAR(45) NOT NULL,
   `link` VARCHAR(200) NOT NULL,
   `public` TINYINT NOT NULL,
-  PRIMARY KEY (`spotify_id`))
+  PRIMARY KEY (`spotify_id`),
+  UNIQUE INDEX `spotify_id_UNIQUE` (`spotify_id` ASC) VISIBLE,
+  UNIQUE INDEX `link_UNIQUE` (`link` ASC) VISIBLE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb3;
 
@@ -82,7 +85,8 @@ DEFAULT CHARACTER SET = utf8mb3;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `okuegiqutb19vini`.`song` (
   `spotify_id` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`spotify_id`))
+  PRIMARY KEY (`spotify_id`),
+  UNIQUE INDEX `spotify_id_UNIQUE` (`spotify_id` ASC) VISIBLE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb3;
 
